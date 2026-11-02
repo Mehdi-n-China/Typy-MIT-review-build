@@ -1,0 +1,17 @@
+"""The optional ``else:`` that can follow an ``if``, a loop or a ``try``."""
+from ._body import parse_body, require_header_colon
+from ._errors import syntax_error
+from ._keywords import starts_with
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+def parse_else_clause(ctx: ParseContext, lines: list, index: int) -> tuple:
+    """If ``lines[index]`` is ``else:``, parse it and return ``(body, index+1)``;
+    otherwise return ``([], index)`` and leave the cursor where it was."""
+    if index < len(lines) and starts_with(lines[index], 'else'):
+        line: LogicalLine = lines[index]
+        colon: int = require_header_colon(ctx, line, 'else')
+        if colon != 1:
+            raise syntax_error(ctx, "'else' does not take a condition", line.tokens[1], hint="use 'elif' or 'elunless' for that")
+        return (parse_body(ctx, line, colon, "'else'"), index + 1)
+    return ([], index)

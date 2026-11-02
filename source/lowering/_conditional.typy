@@ -1,0 +1,34 @@
+"""``Conditional`` -> a chain of ``if`` / ``elif`` / ``else``."""
+
+from .. import tools
+from ..context import CompileContext
+from ._negate import negate
+from ._walk import lower_list, lower_node
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list lower_conditional(dyn node, CompileContext ctx):
+    """Build the chain from the last branch backwards so each ``if`` owns the
+    rest of the chain as its ``orelse``; Python prints nested single ``if``s
+    in an ``orelse`` as ``elif``. ``unless`` / ``elunless`` negate the test."""
+
+    list orelse = lower_list(node.orelse, ctx)
+
+    # Build backwards so each branch can own the remaining chain.
+    for branch in reversed(node.branches):
+        dyn test = lower_node(branch.test, ctx)
+
+        if branch.negated:
+            test = negate(test)
+
+        _PYAST.If lowered = _PYAST.If(
+            test=test,
+            body=lower_list(branch.body, ctx),
+            orelse=orelse
+        )
+
+        orelse = [_PYAST.copy_location(lowered, branch)]
+
+    return orelse

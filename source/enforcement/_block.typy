@@ -1,0 +1,41 @@
+"""Walking statements and enforcing each kind."""
+
+from .. import tools
+from ..tree import FunctionDeclaration, TypedDeclaration, map_blocks
+from ._assignment import enforce_assignment, enforce_augmented
+from ._declaration import enforce_declaration
+from ._function import enforce_function
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list enforce_statement(dyn statement, CompileContext ctx):
+    """Enforce one statement; returns the list of statements replacing it."""
+
+    if isinstance(statement, (TypedDeclaration, _PYAST.AnnAssign)):
+        return enforce_declaration(statement, ctx)
+
+    if isinstance(statement, _PYAST.Assign):
+        return enforce_assignment(statement, ctx)
+
+    if isinstance(statement, _PYAST.AugAssign):
+        return enforce_augmented(statement, ctx)
+
+    if isinstance(statement, FunctionDeclaration):
+        return enforce_function(statement, ctx, enforce_block)
+
+    map_blocks(statement, lambda block: enforce_block(block, ctx))
+    return [statement]
+
+
+list enforce_block(list statements, CompileContext ctx):
+    """Enforce a list of statements, in order."""
+
+    list result = []
+
+    for statement in statements:
+        result.extend(enforce_statement(statement, ctx))
+
+    return result

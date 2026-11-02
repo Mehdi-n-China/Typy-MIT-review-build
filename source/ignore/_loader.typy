@@ -1,0 +1,19 @@
+"""Reading a project's ``.typyignore``."""
+
+from .. import tools
+from ._ignore_matcher import IgnoreMatcher
+
+
+dyn load_ignore_matcher(tools.path.Path root):
+    """An ``IgnoreMatcher`` for ``root/.typyignore``, or ``None`` if the
+    project has no such file."""
+
+    tools.path.Path ignore_file = root / ".typyignore"
+
+    # No matcher is needed when the project has no ignore file.
+    if not ignore_file.is_file():
+        return None
+
+    return IgnoreMatcher(
+        ignore_file.read_text(encoding="utf-8").splitlines()
+    )

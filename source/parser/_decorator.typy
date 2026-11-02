@@ -1,0 +1,19 @@
+"""Decorator lines (``@expression``)."""
+
+from ._bridge import parse_python_expression
+from ._errors import indentation_error, syntax_error
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+
+dyn parse_decorator(ParseContext ctx, LogicalLine line):
+    """Parse one ``@expression`` line and return the expression node."""
+
+    # Decorators must remain single logical lines with no indented body.
+    if line.children:
+        raise indentation_error(ctx, "unexpected indent", line.children[0].first)
+
+    if len(line.tokens) < 2:
+        raise syntax_error(ctx, "expected an expression after '@'", line.first)
+
+    return parse_python_expression(ctx, line.tokens[1:])

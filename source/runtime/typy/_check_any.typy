@@ -1,0 +1,30 @@
+"""Checking ``any`` bindings."""
+
+from ._any_state import AnyState, MISSING
+from ._errors import TypyTypeError
+from ._monitor_hook import report
+
+
+dyn check_any(dyn value, AnyState state, str name):
+    """Establish or enforce the type of an ``any`` binding.
+
+    The first value seen for ``state`` fixes the binding's type, whatever it
+    turns out to be at runtime; every later value must match it exactly.
+    """
+    type actual = type(value)
+
+    # The first assignment establishes the exact runtime type.
+    if state.established is MISSING:
+        state.established = actual
+        report("any", name, None, actual, True)
+        return value
+
+    bool ok = actual is state.established
+    report("any", name, state.established, actual, ok)
+
+    if not ok:
+        raise TypyTypeError(
+            f"{name}: established as {state.established.__name__}, got {actual.__name__}"
+        )
+
+    return value

@@ -1,0 +1,29 @@
+"""The "no tabs for indentation" rule (spec §29)."""
+
+from .. import tools
+from ..errors import TypyIndentationError
+from ._tokenize import TAB_MESSAGE
+from ._source_text import SourceText
+
+
+void check_indentation(list lines, SourceText source):
+    """Raise if any logical line (at any depth) is indented with a tab.
+
+    Only leading whitespace counts: a tab inside a string or between tokens
+    is none of the compiler's business.
+    """
+
+    for line in lines:
+        tools.tokens.TokenInfo first = line.first
+
+        # Inspect only the whitespace before the first token on each line.
+        if "\t" in first.line[: first.start[1]]:
+            raise TypyIndentationError(
+                TAB_MESSAGE,
+                first.start[0],
+                0,
+                source.filename
+            )
+
+        # Nested logical lines must follow the same indentation rule.
+        check_indentation(line.children, source)

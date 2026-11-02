@@ -1,0 +1,53 @@
+"""Building calls into the runtime support module."""
+
+from .. import tools
+from ..reserved import RUNTIME_ALIAS
+from ..context import CompileContext
+from ..tree import TypeRef
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+_PYAST.Call runtime_call(CompileContext ctx, str function, list arguments):
+    """The expression ``typy.<function>(*arguments)``.
+
+    Generated code reaches the runtime package through the reserved alias
+    ``typy``; building a call also records that the output needs it.
+    """
+
+    ctx.needs_runtime = True
+    ctx.runtime_calls += 1
+
+    return _PYAST.Call(
+        func=_PYAST.Attribute(
+            value=_PYAST.Name(id=RUNTIME_ALIAS, ctx=_PYAST.Load()),
+            attr=function,
+            ctx=_PYAST.Load(),
+        ),
+        args=list(arguments),
+        keywords=[],
+    )
+
+
+dyn runtime_type_expression(TypeRef type_ref):
+    """The Python expression whose value is the *class* to compare against.
+
+    Most types are just their name. ``None`` and ``Ellipsis`` name a value
+    rather than a class, so they become ``type(None)`` / ``type(Ellipsis)``.
+    """
+
+    if type_ref.is_none or type_ref.text == "Ellipsis":
+        dyn marker = (
+            _PYAST.Constant(value=None)
+            if type_ref.is_none
+            else _PYAST.Name(id="Ellipsis", ctx=_PYAST.Load())
+        )
+
+        return _PYAST.Call(
+            func=_PYAST.Name(id="type", ctx=_PYAST.Load()),
+            args=[marker],
+            keywords=[],
+        )
+
+    return type_ref.to_expression()

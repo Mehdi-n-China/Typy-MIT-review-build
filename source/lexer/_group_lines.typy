@@ -1,0 +1,65 @@
+"""Grouping tokens into indentation-nested logical lines."""
+
+from .. import tools
+from ..errors import TypyIndentationError
+from ._logical_line import LogicalLine
+from ._source_text import SourceText
+
+
+tuple _IGNORED = (tools.tokens.NL, tools.tokens.COMMENT, tools.tokens.ENCODING)
+
+
+list group_logical_lines(list tokens, SourceText source):
+    """Return the top-level logical lines; each line's ``children`` holds the
+    indented block beneath it (recursively).
+
+    Python's tokenizer already marks block boundaries with INDENT / DEDENT
+    tokens, so this is a straight walk with a stack: an INDENT descends into
+    the previous line's ``children``, a DEDENT climbs back out.
+    """
+
+    list root = []
+    dyn block = root
+    list stack = []
+    list current = []
+    dyn previous = None
+
+    # Build each logical line, descending into child blocks as indentation changes.
+    for token in tokens:
+        dyn kind = token.type
+
+        if kind in _IGNORED:
+            continue
+
+        if kind == tools.tokens.NEWLINE:
+            if current:
+                previous = LogicalLine(current)
+                block.append(previous)
+                current = []
+
+        elif kind == tools.tokens.INDENT:
+            if previous is None:
+                raise TypyIndentationError(
+                    "unexpected indent",
+                    token.start[0],
+                    token.start[1],
+                    source.filename
+                )
+
+            stack.append(block)
+            block = previous.children
+
+        elif kind == tools.tokens.DEDENT:
+            block = stack.pop()
+
+        elif kind == tools.tokens.ENDMARKER:
+            break
+
+        else:
+            current.append(token)
+
+    # Preserve a final logical line when the source has no trailing newline.
+    if current:
+        block.append(LogicalLine(current))
+
+    return root

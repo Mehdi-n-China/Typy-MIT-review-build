@@ -1,0 +1,7 @@
+"""Misuse of void functions."""
+
+from ._semantic import TypySemanticError
+
+
+class TypyVoidError(TypySemanticError):
+    """A ``void`` function returned a value or its result was used as one."""

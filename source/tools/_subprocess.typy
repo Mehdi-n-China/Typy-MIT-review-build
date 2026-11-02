@@ -1,0 +1,8 @@
+"""subprocess facade: launching the system media player for ``--notify``."""
+
+import subprocess
+import types
+
+type Popen = subprocess.Popen
+types.FunctionType run = subprocess.run
+int DEVNULL = subprocess.DEVNULL

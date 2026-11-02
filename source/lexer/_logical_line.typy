@@ -1,0 +1,30 @@
+"""One logical line of source plus the indented block beneath it."""
+
+from .. import tools
+
+
+class LogicalLine:
+    """The significant tokens of one logical line (comments and blank lines
+    removed) and, if an indented block follows it, that block's lines."""
+
+    tuple __slots__ = ("tokens", "children")
+
+    void __init__(LogicalLine self, list tokens):
+        self.tokens = tokens
+        self.children = []
+
+    @property
+    tools.tokens.TokenInfo first(LogicalLine self):
+        return self.tokens[0]
+
+    @property
+    tools.tokens.TokenInfo last(LogicalLine self):
+        return self.tokens[-1]
+
+    @property
+    dyn line(LogicalLine self):
+        return self.tokens[0].start[0]
+
+    @property
+    dyn col(LogicalLine self):
+        return self.tokens[0].start[1]

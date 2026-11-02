@@ -1,0 +1,76 @@
+"""An f-string rewritten without f-string syntax."""
+
+from .. import tools
+
+
+# AST conversion codes: !r = 114, !s = 115, !a = 97.
+dict _CONVERTERS = {
+    114: "repr",
+    115: "str",
+    97: "ascii",
+}
+
+
+tools.pyast.Call fallback_expression(dyn node):
+    """``''.join([...])`` computing exactly what the f-string ``node`` does.
+
+    Used when no quoting lets Python 3.14 read the f-string (a backslash in a
+    replacement field, say). ``{x!r:>8}`` becomes ``format(repr(x), '>8')``,
+    which is precisely how Python evaluates a replacement field.
+    """
+
+    list parts = []
+
+    for value in node.values:
+        if isinstance(value, tools.pyast.Constant):
+            parts.append(value)
+            continue
+
+        dyn shown = value.value
+
+        if value.conversion in _CONVERTERS:
+            tools.pyast.Name converter = tools.pyast.Name(
+                id=_CONVERTERS[value.conversion],
+                ctx=tools.pyast.Load(),
+            )
+            shown = tools.pyast.Call(
+                func=converter,
+                args=[shown],
+                keywords=[],
+            )
+
+        # Format specifications can contain nested replacement fields.
+        dyn spec = (
+            fallback_expression(value.format_spec)
+            if value.format_spec is not None
+            else tools.pyast.Constant(value="")
+        )
+
+        tools.pyast.Name formatter = tools.pyast.Name(
+            id="format",
+            ctx=tools.pyast.Load(),
+        )
+        parts.append(
+            tools.pyast.Call(
+                func=formatter,
+                args=[shown, spec],
+                keywords=[],
+            )
+        )
+
+    tools.pyast.Attribute join = tools.pyast.Attribute(
+        value=tools.pyast.Constant(value=""),
+        attr="join",
+        ctx=tools.pyast.Load(),
+    )
+
+    return tools.pyast.Call(
+        func=join,
+        args=[
+            tools.pyast.List(
+                elts=parts,
+                ctx=tools.pyast.Load(),
+            )
+        ],
+        keywords=[],
+    )

@@ -1,0 +1,19 @@
+"""Human-readable names for the usage counters."""
+
+dict STAT_LABELS = {
+    "builds": "builds completed",
+    "failed_builds": "builds that failed",
+    "files_compiled": "files compiled",
+    "project_builds": "project builds",
+    "single_file_builds": "single-file builds",
+    "enforce_builds": "builds with --enforce",
+    "gui_builds": "builds with --gui",
+    "bytecode_builds": "builds with --bytecode",
+    "standalone_builds": "builds with --standalone",
+    "lightweight_builds": "builds with --lightweight",
+    "notify_builds": "builds with --notify",
+    "notifications": "notifications played",
+    "rickrolls": "times you were rickrolled",
+    "exports": "projects exported",
+    "imports": "projects imported",
+}

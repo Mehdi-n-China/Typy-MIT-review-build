@@ -1,0 +1,27 @@
+"""The ``typy`` entry point."""
+from typing import Any
+from .. import tools
+from ..errors import TypyBaseError
+from ._parser import build_arg_parser
+from ._report_error import report_error
+from ._shorthand import inject_default_command
+
+def main(argv: Any=None) -> Any:
+    """Run the command line and return the process exit code.
+
+    Typy errors print as clean, located messages instead of tracebacks;
+    Ctrl+C exits quietly with the conventional status 130, and a closed
+    pipe (``typy version --modules | head``) is not treated as a crash.
+    """
+    argv = inject_default_command(tools.sys.argv[1:] if argv is None else list(argv))
+    args: tools.args.Namespace = build_arg_parser().parse_args(argv)
+    try:
+        return args.func(args) or 0
+    except TypyBaseError as error:
+        report_error(error)
+        return 1
+    except KeyboardInterrupt:
+        print('interrupted', file=tools.sys.stderr)
+        return 130
+    except BrokenPipeError:
+        return 0

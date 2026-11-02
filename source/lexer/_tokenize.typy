@@ -1,0 +1,57 @@
+"""Turning source text into Python tokens, with Typy-flavoured errors."""
+
+from .. import tools
+from ..errors import TypyIndentationError, TypySyntaxError
+from ._source_text import SourceText
+
+
+str TAB_MESSAGE = (
+    "Tabs are not allowed in typy! If you wish to use tabs for indentation, "
+    "please use your IDE's tab transformation feature!"
+)
+
+
+list tokenize_source(SourceText source):
+    """Tokenize a ``SourceText`` and return the raw token list.
+
+    Python's tokenizer reports unterminated brackets and strings and broken
+    indentation by raising; those become ``TypySyntaxError`` /
+    ``TypyIndentationError`` carrying a location.
+    """
+
+    tools.types.BuiltinFunctionType reader = tools.io.StringIO(source.text).readline
+
+    try:
+        return list(tools.tokens.generate_tokens(reader))
+
+    except tools.tokens.TokenError as error:
+        dyn message = None
+        dyn position = None
+
+        message, position = error.args[0], error.args[1] if len(error.args) > 1 else (None, None)
+
+        raise TypySyntaxError(
+            f"{message} (unmatched delimiter or unterminated string?)",
+            position[0],
+            position[1],
+            source.filename,
+        ) from None
+
+    except IndentationError as error:
+        # Give tab-related indentation errors the compiler's standard message.
+        message = TAB_MESSAGE if "tab" in (error.msg or "").lower() else error.msg
+
+        raise TypyIndentationError(
+            message,
+            error.lineno,
+            error.offset,
+            source.filename
+        ) from None
+
+    except SyntaxError as error:
+        raise TypySyntaxError(
+            error.msg,
+            error.lineno,
+            error.offset,
+            source.filename
+        ) from None

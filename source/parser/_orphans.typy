@@ -1,0 +1,33 @@
+"""Statements that are never valid where they appear."""
+
+from .. import tools
+from ._errors import syntax_error
+from ._context import ParseContext
+
+
+dict _ORPHAN_MESSAGES = {
+    "elif": "'elif' without a matching 'if'",
+    "elunless": "'elunless' without a matching 'if' or 'unless'",
+    "else": "'else' without a matching 'if', 'unless', loop or 'try'",
+    "except": "'except' without a matching 'try'",
+    "finally": "'finally' without a matching 'try'",
+    "case": "'case' outside a 'match' block",
+}
+
+
+void parse_orphan(ParseContext ctx, list lines, int index, list decorators):
+    """A clause keyword (``else``, ``except``...) with nothing to attach to."""
+
+    tools.tokens.TokenInfo first = lines[index].first
+    raise syntax_error(ctx, _ORPHAN_MESSAGES[first.string], first)
+
+
+void parse_plain_def(ParseContext ctx, list lines, int index, list decorators):
+    """Python's ``def`` is not Typy: functions use a typed signature."""
+
+    raise syntax_error(
+        ctx,
+        "'def' is not valid Typy",
+        lines[index].first,
+        hint="declare functions with a typed signature, e.g. 'int add(int a, int b):' or 'void run():'",
+    )

@@ -1,0 +1,32 @@
+"""Simple statements: one logical line may hold several, split by ``;``."""
+
+from ..lexer import split_top_level
+from ._bridge import parse_python_statements
+from ._missing_value import reject_declaration_without_value
+from ._typed_declaration import match_typed_declaration, parse_typed_declaration
+from ._context import ParseContext
+
+
+list parse_segment(ParseContext ctx, list tokens):
+    """Parse one simple statement: a typed declaration if it looks like one,
+    otherwise plain Python. Returns a list of statement nodes."""
+    dyn match = match_typed_declaration(tokens)
+
+    if match is not None:
+        return [parse_typed_declaration(ctx, tokens, match)]
+
+    # Reject incomplete declarations before handing the statement to Python.
+    reject_declaration_without_value(ctx, tokens)
+
+    return parse_python_statements(ctx, tokens)
+
+
+list parse_segments(ParseContext ctx, list tokens):
+    """Parse a run of simple statements separated by top-level ``;``."""
+    list statements = []
+
+    for segment in split_top_level(tokens, ";"):
+        if segment:
+            statements.extend(parse_segment(ctx, segment))
+
+    return statements

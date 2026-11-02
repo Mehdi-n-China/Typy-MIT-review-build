@@ -1,0 +1,35 @@
+"""Reading and updating the ``stats.json`` counters."""
+
+from .. import tools
+
+
+dict read_stats(tools.path.Path stats_file):
+    """All counters as a dict; an absent or damaged file reads as empty."""
+
+    try:
+        with stats_file.open("r", encoding="utf-8") as handle:
+            dyn data = tools.json.load(handle)
+
+    # Missing, unreadable, or malformed stats files are treated as empty.
+    except (OSError, tools.json.JSONDecodeError):
+        return {}
+
+    return data if isinstance(data, dict) else {}
+
+
+void bump_stat(tools.path.Path stats_file, str name, int amount = 1):
+    """Add ``amount`` to counter ``name``. Stats are best-effort: a read-only
+    disk must never break a build, so write failures are swallowed."""
+
+    dict stats = read_stats(stats_file)
+    stats[name] = stats.get(name, 0) + amount
+
+    try:
+        stats_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with stats_file.open("w", encoding="utf-8") as handle:
+            tools.json.dump(stats, handle, indent=4, sort_keys=True)
+
+    # Statistics must never prevent the main build operation from completing.
+    except OSError:
+        pass

@@ -1,0 +1,16 @@
+"""``Program`` -> ``ast.Module``."""
+
+from .. import tools
+from ._walk import lower_list
+from ..context import CompileContext
+from ..tree import Program
+
+
+tools.pyast.Module lower_program(Program program, CompileContext ctx):
+    """The whole file as a plain Python module."""
+
+    # Lower each top-level statement into the module body.
+    return tools.pyast.Module(
+        body=lower_list(program.body, ctx),
+        type_ignores=[],
+    )

@@ -1,0 +1,36 @@
+"""``FunctionDeclaration`` -> ``def`` / ``async def``."""
+
+from .. import tools
+from ._annotation import annotation_for
+from ._arguments import build_arguments
+from ._walk import lower_list, lower_node
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list lower_function_declaration(dyn node, CompileContext ctx):
+    """``int add(int a, int b):`` becomes ``def add(a: int, b: int) -> int:``.
+
+    ``void`` lowers to ``-> None`` (Python has no void; the difference from a
+    ``None`` function exists only at compile time) and ``any`` / ``dyn`` to
+    ``typing.Any``.
+    """
+
+    dyn function_type = _PYAST.AsyncFunctionDef if node.is_async else _PYAST.FunctionDef
+
+    dyn lowered = function_type(
+        name=node.name,
+        args=build_arguments(node.signature.parameters, ctx),
+        body=lower_list(node.body, ctx) or [_PYAST.Pass()],
+        decorator_list=[lower_node(decorator, ctx) for decorator in node.decorators],
+        returns=annotation_for(node.signature.returns, ctx),
+        type_comment=None,
+    )
+
+    # Include the type-parameter field when running on Python 3.12+.
+    if "type_params" in function_type._fields:  # Python 3.12+
+        lowered.type_params = []
+
+    return [_PYAST.copy_location(lowered, node)]

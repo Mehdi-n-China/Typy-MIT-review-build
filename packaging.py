@@ -1,0 +1,44 @@
+"""
+Alternative build output modes.
+
+``--bytecode``    compile generated source to a .pyc with ``py_compile``; same
+                  behaviour as the .py, precompiled.
+``--standalone``  pack a build into one runnable archive with ``zipapp``.
+
+``zipapp`` is the dependency-free "freezer" in the standard library. The honest
+limit: the archive still needs a Python interpreter on the machine that runs
+it; it does not embed one the way PyInstaller or Nuitka would. It carries a
+shebang and is marked executable, so ``./program.pyz`` works on Unix directly.
+
+Since: 1.4.0
+"""
+from . import tools
+
+def write_bytecode(python_code: str, py_path: tools.path.Path, pyc_path: tools.path.Path) -> None:
+    """Compile ``python_code`` to ``pyc_path``.
+
+    ``py_compile`` works on files, so the source is written to ``py_path``
+    first and removed afterwards: ``--bytecode`` replaces the .py output
+    rather than adding to it.
+    """
+    py_path.parent.mkdir(parents=True, exist_ok=True)
+    py_path.write_text(python_code, encoding='utf-8')
+    pyc_path.parent.mkdir(parents=True, exist_ok=True)
+    tools.bytecode.compile(str(py_path), cfile=str(pyc_path), doraise=True)
+    py_path.unlink()
+
+def build_standalone(build_dir: tools.path.Path, entry_point: tools.path.Path, target: tools.path.Path) -> tools.path.Path:
+    """Pack everything under ``build_dir`` into the runnable archive ``target``.
+
+    ``entry_point`` is the compiled .py (inside ``build_dir``) that should run
+    as ``__main__``; unless it already is ``__main__.py`` a tiny launcher is
+    written for it. ``target`` must not live inside ``build_dir``.
+    """
+    relative: tools.path.Path = entry_point.relative_to(build_dir)
+    if relative.name != '__main__.py':
+        module: str = '.'.join(relative.with_suffix('').parts)
+        launcher: tools.path.Path = build_dir / '__main__.py'
+        launcher.write_text(f'import runpy\nrunpy.run_module({module!r}, run_name=\'__main__\')\n', encoding='utf-8')
+    tools.apps.create_archive(str(build_dir), target=str(target), interpreter='/usr/bin/env python3')
+    target.chmod(target.stat().st_mode | tools.modes.S_IXUSR | tools.modes.S_IXGRP | tools.modes.S_IXOTH)
+    return target

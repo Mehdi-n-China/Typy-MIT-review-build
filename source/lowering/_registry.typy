@@ -1,0 +1,5 @@
+"""The table of lowering functions, filled in by ``lowering/__init__.py``."""
+
+# Maps a Typy node class to its lowering function: f(node, ctx) -> node | [nodes].
+# Statement handlers return a list of statements; expression handlers return one node.
+dict HANDLERS = {}

@@ -1,0 +1,20 @@
+"""
+Semantic analysis: the compile-time rules Typy can verify with certainty.
+
+    _reserved_check   reserved words are never defined (spec §4)
+    _resolve_*        scopes, typed bindings, "declare before assigning" (§7)
+    _literal_check    a literal must match its declared type (§8)
+    _void_returns     void functions cannot return (§13)
+    _void_misuse      void results are never used as values (§13)
+
+Typy deliberately does *not* try to prove the type of arbitrary expressions
+(§9, §26): ``int x = some_call()`` is trusted at compile time and, with
+``--enforce``, checked at runtime instead.
+
+Since: 0.2.0 (rewritten around the Typy AST in 2.1.0).
+"""
+from ._analyze import analyze_program
+from ._binding import Binding, BindingKind
+from ._literal_type_of import literal_type_of
+from ._literals import LITERAL_TYPES
+from ._scope import Scope

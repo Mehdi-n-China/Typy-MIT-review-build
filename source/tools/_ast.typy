@@ -1,0 +1,17 @@
+"""
+ast facade: Python's own syntax tree, re-exported under Typy's roof.
+
+Typy's AST (see ``Typy/tree``) extends this one: ordinary Python constructs
+stay ordinary ``ast`` nodes, Typy-only constructs are Typy node classes that
+subclass ``ast.stmt`` / ``ast.expr``. Everything public in ``ast`` is copied
+into this module's namespace once, at import time, so attribute access stays
+as cheap as it would be on ``ast`` itself.
+"""
+
+import ast as _python_ast
+
+
+# Re-export the public AST names without wrapping or proxying them.
+globals().update(
+    {_n: _v for _n, _v in vars(_python_ast).items() if not _n.startswith("_")}
+)

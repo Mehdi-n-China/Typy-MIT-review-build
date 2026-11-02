@@ -1,0 +1,9 @@
+"""types facade: the classes of functions, methods, modules and generators."""
+
+import types
+
+type FunctionType = types.FunctionType
+type BuiltinFunctionType = types.BuiltinFunctionType
+type MethodType = types.MethodType
+type ModuleType = types.ModuleType
+type GeneratorType = types.GeneratorType

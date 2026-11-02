@@ -1,0 +1,22 @@
+"""Python's ``for`` / ``async for`` loops."""
+
+from ._header_stub import parse_header
+from ._body import parse_body, require_header_colon
+from ._else_clause import parse_else_clause
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+
+tuple parse_for(ParseContext ctx, list lines, int index, list decorators):
+    """Parse a ``for`` header with Python's parser, then swap in the
+    Typy-parsed body and optional ``else``."""
+
+    LogicalLine line = lines[index]
+    int colon = require_header_colon(ctx, line, "for")
+
+    # Keep Python's parsed header while replacing its body with Typy's AST.
+    dyn node = parse_header(ctx, line.tokens[: colon + 1])
+    node.body = parse_body(ctx, line, colon, "'for'")
+    node.orelse, index = parse_else_clause(ctx, lines, index + 1)
+
+    return [node], index

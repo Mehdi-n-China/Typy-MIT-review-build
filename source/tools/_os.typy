@@ -1,0 +1,11 @@
+"""os facade: environment variables and the Windows-only ``startfile``."""
+
+import os
+import types
+
+dyn environ = os.environ
+types.FunctionType getenv = os.getenv
+
+# ``os.startfile`` only exists on Windows; ``None`` everywhere else.
+dyn startfile = getattr(os, "startfile", None)
+types.FunctionType walk = os.walk

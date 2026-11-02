@@ -1,0 +1,7 @@
+"""Content digests."""
+
+from .. import tools
+
+str sha256_of(bytes data):
+    """Hex SHA-256 of ``data`` (bytes)."""
+    return tools.hashes.sha256(data).hexdigest()

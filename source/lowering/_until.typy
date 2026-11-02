@@ -1,0 +1,22 @@
+"""``UntilLoop`` -> ``while not ...``."""
+
+from .. import tools
+from ._negate import negate
+from ._walk import lower_list, lower_node
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list lower_until(dyn node, CompileContext ctx):
+    """``until test:`` is ``while not test:``; ``else`` is unchanged."""
+
+    # Negate the condition while preserving the loop's body and else block.
+    _PYAST.While lowered = _PYAST.While(
+        test=negate(lower_node(node.test, ctx)),
+        body=lower_list(node.body, ctx),
+        orelse=lower_list(node.orelse, ctx),
+    )
+
+    return [_PYAST.copy_location(lowered, node)]

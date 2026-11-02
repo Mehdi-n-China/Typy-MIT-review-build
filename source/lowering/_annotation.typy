@@ -1,0 +1,29 @@
+"""Turning a ``TypeRef`` into the Python annotation it stands for."""
+
+from .. import tools
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+dyn annotation_for(dyn type_ref, CompileContext ctx):
+    """The annotation expression for ``type_ref``.
+
+    ``any`` and ``dyn`` are not real Python types (and ``any`` collides with a
+    builtin), so both become ``typing.Any``; ``void`` has no Python spelling
+    and becomes ``None``. Everything else is its own dotted name.
+    """
+
+    if type_ref is None:
+        return None
+
+    # Track the typing.Any import requirement when lowering pseudo-types.
+    if type_ref.is_any or type_ref.is_dyn:
+        ctx.uses_any = True
+        return _PYAST.Name(id="Any", ctx=_PYAST.Load())
+
+    if type_ref.is_void:
+        return _PYAST.Constant(value=None)
+
+    return type_ref.to_expression()

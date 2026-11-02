@@ -1,0 +1,43 @@
+"""Generic helpers for walking the statement structure of a mixed tree."""
+
+from .. import tools
+from ._branch import Branch
+from ._function_declaration import FunctionDeclaration
+
+
+tuple _CLAUSES = (tools.pyast.ExceptHandler, tools.pyast.match_case, Branch)
+tuple _SCOPES = (
+    tools.pyast.FunctionDef,
+    tools.pyast.AsyncFunctionDef,
+    tools.pyast.ClassDef,
+    FunctionDeclaration,
+)
+
+
+tools.types.GeneratorType child_blocks(dyn node):
+    """Yield each list of statements nested directly inside ``node``.
+
+    Works for Python and Typy compound statements alike by inspecting
+    ``_fields``: a list of statements is a block (``body``, ``orelse``,
+    ``finalbody``...), and a list of clauses (``except`` handlers, ``match``
+    cases, conditional branches) contributes each clause's ``body``.
+    """
+    for name in node._fields:
+        dyn value = getattr(node, name, None)
+
+        if not isinstance(value, list) or not value:
+            continue
+
+        dyn head = value[0]
+
+        if isinstance(head, tools.pyast.stmt):
+            yield value
+        elif isinstance(head, _CLAUSES):
+            # Clause nodes hold their own statement lists in ``body``.
+            for clause in value:
+                yield clause.body
+
+
+bool is_scope_node(dyn node):
+    """True for nodes that open a new Python scope (functions and classes)."""
+    return isinstance(node, _SCOPES)

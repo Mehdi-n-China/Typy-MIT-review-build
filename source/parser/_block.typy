@@ -1,0 +1,55 @@
+"""A block of statements: the unit the whole parser recurses on."""
+
+from ._classify import classify_line
+from ._decorator import parse_decorator
+from ._dispatch import DECORATABLE, PARSERS
+from ._errors import syntax_error
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+
+list parse_block(ParseContext ctx, list lines):
+    """Parse sibling logical lines into a list of statement nodes.
+
+    Decorator lines are collected and handed to the function or class that
+    follows them. Each statement parser consumes as many lines as it needs
+    (an ``if`` takes its ``elif`` / ``else`` lines too) and returns the index
+    of the next unread line.
+    """
+
+    list statements = []
+    list decorators = []
+    int index = 0
+
+    while index < len(lines):
+        LogicalLine line = lines[index]
+        str kind = classify_line(line)
+
+        if kind == "decorator":
+            decorators.append(parse_decorator(ctx, line))
+            index += 1
+            continue
+
+        # Decorators can only apply to function and class declarations.
+        if decorators and kind not in DECORATABLE:
+            raise syntax_error(
+                ctx,
+                "a decorator must be followed by a function or class",
+                line.first,
+            )
+
+        dyn nodes = None
+        nodes, index = PARSERS[kind](ctx, lines, index, decorators)
+        decorators = []
+
+        statements.extend(nodes)
+
+    # Catch decorators that have no following declaration.
+    if decorators:
+        raise syntax_error(
+            ctx,
+            "a decorator must be followed by a function or class",
+            lines[-1].last,
+        )
+
+    return statements

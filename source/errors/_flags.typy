@@ -1,0 +1,12 @@
+"""Incompatible command line flags."""
+
+from ._base import TypyBaseError
+
+
+class TypyFlagConflict(TypyBaseError):
+    """Two command line flags that may not be used together were combined."""
+
+    void __init__(dyn self, list flags):
+        super().__init__(
+            f"Typy does not support the following flags in the same compilation run: {', '.join(flags)}"
+        )

@@ -1,0 +1,54 @@
+class Animal:
+    class Sound:
+        pass
+
+int square(int n):
+    return n * n
+
+void announce(str message):
+    print(message)
+
+any identity(any x):
+    return x
+
+list final_list(list x, /):
+    return x
+
+str describe(dyn s = None):
+    unless s:
+        return "no sound"
+    return "a sound"
+
+int total = 0
+repeat 5:
+    total = total + 1
+
+i(0) while i < 3:
+    total = total + i
+    i += 1
+
+j(10) until j <= 7:
+    total = total + 1
+    j -= 1
+
+unless total > 1000:
+    announce("total is reasonable")
+
+elunless total < 0:
+    announce("unreachable")
+
+else:
+    announce("also unreachable")
+
+class Node:
+    pass
+
+dyn root = Node()
+root.child = None
+dyn maybe_name = root?.child?.name
+str label = "none" if maybe_name is None else maybe_name
+
+announce(describe())
+print(square(total))
+print(identity(42))
+print(label)

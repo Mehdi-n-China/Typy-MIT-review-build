@@ -1,0 +1,30 @@
+"""``RepeatLoop`` -> ``for __ in range(...)``."""
+
+from .. import tools
+from ..reserved import REPEAT_VARIABLE
+from ._walk import lower_list, lower_node
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list lower_repeat(dyn node, CompileContext ctx):
+    """``repeat n:`` is ``for __ in range(n):`` (spec §21). ``__`` is the
+    compiler-owned throwaway name: it is reserved, so user code can never
+    collide with it or read it."""
+
+    # Use the reserved compiler-owned name as the loop target.
+    _PYAST.For lowered = _PYAST.For(
+        target=_PYAST.Name(id=REPEAT_VARIABLE, ctx=_PYAST.Store()),
+        iter=_PYAST.Call(
+            func=_PYAST.Name(id="range", ctx=_PYAST.Load()),
+            args=[lower_node(node.count, ctx)],
+            keywords=[],
+        ),
+        body=lower_list(node.body, ctx),
+        orelse=lower_list(node.orelse, ctx),
+        type_comment=None,
+    )
+
+    return [_PYAST.copy_location(lowered, node)]

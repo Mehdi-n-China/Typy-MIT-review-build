@@ -1,0 +1,36 @@
+"""Collecting compile-time problems instead of stopping at the first one."""
+
+from ..errors import TypyCompilationError
+
+
+class Diagnostics:
+    """An ordered bag of errors for one file.
+
+    Semantic checks keep going after the first problem so a user sees every
+    mistake in one run; ``raise_if_any`` turns the collection into a single
+    ``TypyCompilationError`` sorted by position.
+    """
+
+    void __init__(Diagnostics self, str filename):
+        self.filename = filename
+        self.errors = []
+
+    void report(Diagnostics self, dyn error_type, str message, dyn node, dyn hint = None):
+        """Create ``error_type(message)`` located at ``node`` and keep it."""
+        self.errors.append(
+            error_type(
+                message,
+                getattr(node, "lineno", None),
+                getattr(node, "col_offset", None),
+                self.filename,
+                hint,
+            )
+        )
+
+    void raise_if_any(Diagnostics self):
+        if self.errors:
+            list ordered = sorted(
+                self.errors,
+                key=lambda error: (error.line or 0, error.col or 0),
+            )
+            raise TypyCompilationError(ordered)

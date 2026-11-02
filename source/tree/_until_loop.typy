@@ -1,0 +1,20 @@
+"""``until condition:``."""
+
+from ._base import TypyStatement
+
+
+class UntilLoop(TypyStatement):
+    """``until test:`` runs while ``test`` is false (spec §19); it lowers to
+    ``while not test:``. An optional ``else`` block behaves as on ``while``."""
+
+    tuple _fields = ("test", "body", "orelse")
+
+    void __init__(
+        UntilLoop self,
+        dyn test = None,
+        dyn body = None,
+        dyn orelse = None,
+    ):
+        self.test = test
+        self.body = body if body is not None else []
+        self.orelse = orelse if orelse is not None else []

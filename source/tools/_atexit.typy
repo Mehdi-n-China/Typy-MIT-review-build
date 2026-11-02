@@ -1,0 +1,6 @@
+"""atexit facade: callbacks that run when the interpreter shuts down."""
+
+import atexit
+import types
+
+types.BuiltinFunctionType register = atexit.register

@@ -1,0 +1,17 @@
+"""Which parsing function handles which kind of statement."""
+from ._class import parse_class
+from ._conditional import parse_conditional
+from ._for import parse_for
+from ._forever import parse_forever
+from ._function import parse_function_declaration
+from ._initialized_loop import parse_initialized_loop
+from ._match import parse_match
+from ._orphans import parse_orphan, parse_plain_def
+from ._repeat import parse_repeat
+from ._simple import parse_simple_line
+from ._try import parse_try
+from ._until import parse_until
+from ._while import parse_while
+from ._with import parse_with
+PARSERS: dict = {'class': parse_class, 'def': parse_plain_def, 'for': parse_for, 'forever': parse_forever, 'function': parse_function_declaration, 'if': parse_conditional, 'initialized_loop': parse_initialized_loop, 'match': parse_match, 'orphan': parse_orphan, 'repeat': parse_repeat, 'simple': parse_simple_line, 'try': parse_try, 'until': parse_until, 'while': parse_while, 'with': parse_with}
+DECORATABLE: frozenset = frozenset({'class', 'function', 'def'})

@@ -1,0 +1,33 @@
+"""Formatting ``typy version --modules``."""
+
+from ..registry import MODULES, installed_dependencies
+
+
+list format_modules():
+    """Every Typy module with its summary and introducing version, followed
+    by the third-party dependencies and their installed versions."""
+
+    # Calculate the name column width for aligned output.
+    dyn width = max(len(info.name) for info in MODULES)
+
+    list lines = [
+        "",
+        "Modules:",
+    ]
+
+    # List each module with its introduction version and summary.
+    for info in MODULES:
+        lines.append(
+            f"  {info.name:<{width}}  since {info.since:<6}  {info.summary}"
+        )
+
+    lines += [
+        "",
+        "Dependencies:",
+    ]
+
+    # List dependencies and indicate any that are not installed.
+    for name, version in installed_dependencies():
+        lines.append(f"  {name:<{width}}  {version or 'NOT INSTALLED'}")
+
+    return lines

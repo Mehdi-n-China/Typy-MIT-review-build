@@ -1,0 +1,30 @@
+"""How a name is bound, as far as Typy's type rules are concerned."""
+
+
+class BindingKind:
+    """``EXEMPT``    bound by something untyped (loop target, import...): never enforced
+    ``DYN``       declared ``dyn``: never enforced
+    ``ANY``       declared ``any``: the first value fixes the type
+    ``CONCRETE``  declared with a real type: always checked, exactly
+    """
+
+    str EXEMPT = "exempt"
+    str DYN = "dyn"
+    str ANY = "any"
+    str CONCRETE = "concrete"
+
+
+class Binding:
+    """The Typy-level facts about one name at one point in a scope.
+
+    ``type_ref`` is the declared ``TypeRef`` (``None`` for exempt bindings);
+    ``state_var`` names the hidden variable holding an ``any`` binding's
+    established type at runtime.
+    """
+
+    tuple __slots__ = ("kind", "type_ref", "state_var")
+
+    void __init__(Binding self, dyn kind, dyn type_ref = None, dyn state_var = None):
+        self.kind = kind
+        self.type_ref = type_ref
+        self.state_var = state_var

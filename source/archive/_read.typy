@@ -1,0 +1,105 @@
+
+"""Reading and verifying an archive."""
+
+from .. import tools
+from ..errors import TypyArchiveError
+from ._constants import FORMAT_VERSION, MANIFEST_NAME, PAYLOAD_DIR
+from ._hash import sha256_of
+from ._safe_path import safe_destination
+
+
+dict read_manifest(dyn archive):
+    """The validated manifest of an open ``ZipFile``."""
+
+    try:
+        dict manifest = tools.json.loads(archive.read(MANIFEST_NAME))
+
+    except KeyError:
+        raise TypyArchiveError(
+            f"not a .typyexp archive: {MANIFEST_NAME} is missing"
+        ) from None
+
+    except tools.json.JSONDecodeError as error:
+        raise TypyArchiveError(
+            f"corrupt manifest: {error}"
+        ) from None
+
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("files"), list):
+        raise TypyArchiveError("corrupt manifest: no file list")
+
+    if manifest.get("format") != FORMAT_VERSION:
+        raise TypyArchiveError(
+            f"unsupported archive format {manifest.get('format')!r} "
+            f"(this Typy reads format {FORMAT_VERSION})"
+        )
+
+    return manifest
+
+
+dict extract_archive(
+    tools.path.Path archive_path,
+    tools.path.Path destination,
+    ):
+    """Extract ``archive_path`` into the existing folder ``destination`` and
+    return its manifest.
+
+    Every listed file must be present with the recorded size and SHA-256, no
+    unlisted file may hide in the payload, and every path is checked against
+    ``safe_destination`` before anything is written.
+    """
+
+    try:
+        with tools.zips.ZipFile(archive_path) as archive:
+            dict manifest = read_manifest(archive)
+            set listed = set()
+
+            for entry in manifest["files"]:
+                str relative = entry["path"]
+                listed.add(f"{PAYLOAD_DIR}/{relative}")
+
+                tools.path.Path target = safe_destination(destination, relative)
+
+                try:
+                    bytes data = archive.read(f"{PAYLOAD_DIR}/{relative}")
+
+                except KeyError:
+                    raise TypyArchiveError(
+                        f"archive is missing {relative!r}"
+                    ) from None
+
+                # Verify the extracted content against the manifest.
+                if (
+                    len(data) != entry["size"]
+                    or sha256_of(data) != entry["sha256"]
+                ):
+                    raise TypyArchiveError(
+                        f"{relative!r} does not match its recorded checksum; "
+                        "the archive is damaged"
+                    )
+
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+
+            # Reject payload files that are not declared in the manifest.
+            list stray = [
+                name
+                for name in archive.namelist()
+                if (
+                    name != MANIFEST_NAME
+                    and not name.endswith("/")
+                    and name not in listed
+                )
+            ]
+
+            if stray:
+                raise TypyArchiveError(
+                    "archive contains files its manifest does not list: "
+                    f"{stray[0]!r}"
+                )
+
+    except tools.zips.BadZipFile:
+        raise TypyArchiveError(
+            "not a valid .typyexp archive (it is not a zip file)"
+        ) from None
+
+    return manifest

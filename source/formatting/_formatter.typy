@@ -1,0 +1,65 @@
+"""Printing function signatures."""
+
+from ..tree import FunctionDeclaration, ParameterKind, render_default
+from ._parameter_vector import ParameterVector
+
+
+class Formatter:
+    """Static helpers that print signatures."""
+
+    @staticmethod
+    str function(
+        str name,
+        dyn parameters,
+        dyn return_type,
+        bool is_async = False,
+    ):
+        """The Python header the compiler generates for a typed function:
+        ``def add(a: int, b: int = 5) -> int``."""
+
+        dyn vector = (
+            parameters
+            if isinstance(parameters, ParameterVector)
+            else ParameterVector(parameters)
+        )
+
+        str keyword = "async def" if is_async else "def"
+
+        return f"{keyword} {name}({vector.formatted}) -> {_python_return(return_type)}"
+
+    @staticmethod
+    str signature(FunctionDeclaration declaration):
+        """A ``FunctionDeclaration`` in Typy's own syntax:
+        ``int add(int a, int b = 5)``."""
+
+        list parts = []
+
+        for parameter in declaration.signature.parameters:
+            if parameter.is_marker:
+                parts.append(parameter.name)
+                continue
+
+            dyn star = {
+                ParameterKind.VARARG: "*",
+                ParameterKind.KWARG: "**",
+            }.get(parameter.kind, "")
+
+            str text = f"{star}{parameter.type.text} {parameter.name}"
+
+            if parameter.default is not None:
+                text += f" = {render_default(parameter.default)}"
+
+            parts.append(text)
+
+        str prefix = "async " if declaration.is_async else ""
+
+        return f"{prefix}{declaration.signature.returns.text} {declaration.name}({', '.join(parts)})"
+
+
+str _python_return(dyn return_type):
+    """``void`` has no Python spelling; it is printed as ``None``."""
+
+    dyn text = return_type.text if hasattr(return_type, "text") else str(return_type)
+
+    # Translate Typy's void return type to Python's None annotation.
+    return "None" if text == "void" else text

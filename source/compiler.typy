@@ -1,0 +1,73 @@
+"""The compiler's public entry point."""
+
+from . import tools
+from .errors import TypyBaseError, TypyCompilationError, TypyInternalError
+from .logger import logger
+from .pipeline import compile_to_python
+
+
+class CompileResult:
+    """Outcome of compiling one source file.
+
+    On success ``python_code`` holds the generated Python and ``errors`` is
+    empty; on failure ``errors`` lists every diagnostic and ``python_code`` is
+    ``None``. ``needs_runtime`` says the output imports the runtime package
+    (``--enforce`` checks); ``uses_any_typing`` that it imports ``typing.Any``;
+    ``trace`` holds the per-stage notes shown by ``--veritasium``.
+    """
+
+    void __init__(
+        CompileResult self,
+        dyn python_code = None,
+        dyn errors = None,
+        bool needs_runtime = False,
+        bool uses_any_typing = False,
+        dyn trace = None,
+    ):
+        self.python_code = python_code
+        self.errors = list(errors or [])
+        self.needs_runtime = needs_runtime
+        self.uses_any_typing = uses_any_typing
+        self.trace = list(trace or [])
+
+    @property
+    bool ok(CompileResult self):
+        return not self.errors and self.python_code is not None
+
+
+CompileResult compile_source(
+    dyn source,
+    str filename = '<typy>',
+    bool enforce = False,
+):
+    """Compile Typy ``source``; never raises for problems in the source.
+
+    Syntax and semantic errors come back inside the ``CompileResult`` so a
+    caller compiling many files can report all of them together. A crash
+    inside the compiler itself is logged and reported as a
+    ``TypyInternalError`` rather than escaping as a raw traceback.
+    """
+    try:
+        dyn code = None
+        dyn ctx = None
+        code, ctx = compile_to_python(source, filename, enforce)
+
+    except TypyCompilationError as failure:
+        return CompileResult(errors=failure.errors)
+
+    except TypyBaseError as failure:
+        return CompileResult(errors=[failure])
+
+    except Exception as crash:  # a bug in Typy itself, not in the user's program
+        logger.crash(tools.trace.format_exc())
+
+        return CompileResult(
+            errors=[
+                TypyInternalError(
+                    f"internal compiler error: {crash!r}",
+                    filename=filename,
+                )
+            ]
+        )
+
+    return CompileResult(code, [], ctx.needs_runtime, ctx.uses_any, ctx.trace)

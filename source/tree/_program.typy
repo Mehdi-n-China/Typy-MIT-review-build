@@ -1,0 +1,16 @@
+"""The root of a parsed Typy file."""
+
+from .. import tools
+
+
+class Program(tools.pyast.mod):
+    """A whole Typy source file: a list of statements plus its filename.
+
+    Lowering turns this into an ordinary ``ast.Module``.
+    """
+
+    tuple _fields = ("body", "filename")
+
+    void __init__(Program self, dyn body = None, str filename = '<typy>'):
+        self.body = body if body is not None else []
+        self.filename = filename

@@ -1,0 +1,13 @@
+"""Making output folders importable."""
+
+
+void add_package_markers(set python_dirs):
+    """Give every folder that holds Python an (empty) ``__init__.py`` unless
+    it already has one, so the compiled project imports like a package tree."""
+
+    # Ensure every Python-containing directory is importable as a package.
+    for directory in python_dirs:
+        dyn marker = directory / "__init__.py"
+
+        if not marker.exists():
+            marker.write_text("", encoding="utf-8")

@@ -1,0 +1,10 @@
+"""
+Python's *hard* keywords only (``if``, ``return``, ``None``, ...).
+
+The typed-declaration and typed-signature parsers use this set to tell
+``int x = 5`` (a declaration) from ``return x`` (a plain statement). Soft
+keywords such as ``type`` are deliberately absent: ``type`` is also a
+perfectly good Typy type name.
+"""
+from .. import tools
+PY_HARD_KEYWORDS: frozenset = frozenset(tools.keyword.kwlist)

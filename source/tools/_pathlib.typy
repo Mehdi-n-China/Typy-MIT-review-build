@@ -1,0 +1,6 @@
+"""pathlib facade: every filesystem path in the compiler is a ``Path``."""
+
+import pathlib
+
+type Path = pathlib.Path
+type PurePosixPath = pathlib.PurePosixPath

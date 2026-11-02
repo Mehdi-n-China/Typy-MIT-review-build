@@ -1,0 +1,15 @@
+"""Tunables of the notification."""
+
+from .. import tools
+
+
+# The Easter egg video lives next to the package, in assets/.
+tools.path.Path RICKROLL_PATH = (
+    tools.path.Path(__file__).resolve().parent.parent
+    / "assets"
+    / "rickroll.mp4"
+)
+
+int ROLL_SIDES = 69          # One roll in 69 plays the Rickroll instead of beeping.
+int BEEP_COUNT = 3           # How many beeps make up the normal notification.
+float BEEP_GAP_SECONDS = 1.0  # Pause between beeps.

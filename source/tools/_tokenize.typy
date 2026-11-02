@@ -1,0 +1,26 @@
+"""
+tokenize facade: Python's lexer, which Typy's lexer builds on.
+
+``?`` is not a Python operator, but tokenizing does not fail on it: Python
+3.12+ emits it as an ``OP`` token and the pure-Python tokenizer of 3.10/3.11
+as an ``ERRORTOKEN``. Either way it survives lexing untouched, which is what
+lets the optional-chaining operators exist.
+"""
+
+import tokenize
+import types
+
+int OP = tokenize.OP
+int NAME = tokenize.NAME
+int INDENT = tokenize.INDENT
+int DEDENT = tokenize.DEDENT
+int NEWLINE = tokenize.NEWLINE
+int NL = tokenize.NL
+int COMMENT = tokenize.COMMENT
+int ENDMARKER = tokenize.ENDMARKER
+int ENCODING = tokenize.ENCODING
+int ERRORTOKEN = tokenize.ERRORTOKEN
+
+type TokenError = tokenize.TokenError
+type TokenInfo = tokenize.TokenInfo
+types.FunctionType generate_tokens = tokenize.generate_tokens

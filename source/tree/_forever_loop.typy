@@ -1,0 +1,14 @@
+"""``forever:``."""
+
+from ._base import TypyStatement
+
+
+class ForeverLoop(TypyStatement):
+    """``forever:`` is an intentional infinite loop (spec §20); it lowers to
+    ``while True:``."""
+
+    tuple _fields = ("body", "orelse")
+
+    void __init__(ForeverLoop self, dyn body = None, dyn orelse = None):
+        self.body = body if body is not None else []
+        self.orelse = orelse if orelse is not None else []

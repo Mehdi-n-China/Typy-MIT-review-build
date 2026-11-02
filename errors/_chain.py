@@ -1,0 +1,5 @@
+"""Misused optional chaining."""
+from ._syntax import TypySyntaxError
+
+class TypyChainError(TypySyntaxError):
+    """Optional chaining (`?.` / `?[`) used somewhere it is not allowed."""

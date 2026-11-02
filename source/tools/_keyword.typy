@@ -1,0 +1,9 @@
+"""keyword facade: the set of words Python itself reserves."""
+
+import keyword
+import types
+
+list kwlist = keyword.kwlist
+list softkwlist = keyword.softkwlist
+
+types.BuiltinFunctionType iskeyword = keyword.iskeyword

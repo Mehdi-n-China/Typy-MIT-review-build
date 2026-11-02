@@ -1,0 +1,12 @@
+"""
+Typy-specific statement keywords: the words that open a Typy-only statement.
+"""
+
+
+frozenset STATEMENT_KEYWORDS = frozenset({
+    "until",     # while not ...
+    "forever",   # while True:
+    "repeat",    # for __ in range(...):
+    "unless",    # if not ...
+    "elunless",  # elif not ...
+})

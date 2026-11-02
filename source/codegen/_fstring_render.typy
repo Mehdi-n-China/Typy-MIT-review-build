@@ -1,0 +1,73 @@
+"""Printing f-strings that every supported Python accepts."""
+
+from .. import tools
+from ._fstring_text import QUOTES, escape_literal
+
+
+dict _CONVERSIONS = {
+    114: "!r",
+    115: "!s",
+    97: "!a",
+}
+
+
+dyn render_fstring(dyn node, tuple enclosing = ()):
+    """Source text for the f-string ``node`` that Python 3.14+ can read, or
+    ``None`` if no choice of quotes works.
+
+    Before 3.12 a replacement field may not contain a backslash or the
+    f-string's own quote character, and a nested f-string may not reuse an
+    enclosing one's quote. ``ast.unparse`` on 3.12+ ignores those rules, so
+    the quotes are chosen here: the first of ``'``, ``"``, ``'''``, ``\"\"\"``
+    that every replacement field allows.
+    """
+
+    # Avoid reusing a quote delimiter from an enclosing f-string.
+    set taken = {quote[0] for quote in enclosing}
+
+    for quote in QUOTES:
+        unless quote[0] in taken:
+            dyn body = render_parts(node.values, quote, enclosing + (quote,))
+            if body is not None:
+                return "f" + quote + body + quote
+
+    return None
+
+
+dyn render_parts(list values, str quote, tuple enclosing):
+    """The text between the quotes, or ``None`` if ``quote`` cannot work."""
+
+    from ._fstring_expression import expression_source  # mutually recursive
+
+    list out = []
+
+    for value in values:
+        if isinstance(value, tools.pyast.Constant):
+            out.append(escape_literal(value.value, quote))
+            continue
+
+        str text = expression_source(value.value, enclosing)
+
+        # Reject delimiters that would make the generated f-string invalid.
+        bool clash = quote in text if len(quote) == 3 else quote[0] in text
+        if "\\" in text or clash:
+            return None
+
+        if isinstance(value.value, (tools.pyast.Lambda, tools.pyast.NamedExpr)):
+            text = "(" + text + ")"
+
+        # Prevent an expression beginning with { from being read as {{.
+        if text.startswith("{"):
+            text = " " + text
+
+        str field = "{" + text + _CONVERSIONS.get(value.conversion, "")
+
+        if value.format_spec is not None:
+            dyn spec = render_parts(value.format_spec.values, quote, enclosing)
+            if spec is None:
+                return None
+            field += ":" + spec
+
+        out.append(field + "}")
+
+    return "".join(out)

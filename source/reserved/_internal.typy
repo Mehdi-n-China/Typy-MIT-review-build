@@ -1,0 +1,22 @@
+"""
+Names the compiler itself puts into generated code.
+
+None of them can collide with user code: ``typy`` and ``__`` are reserved
+terms, ``CHAIN_GUARD`` is rejected by the lexer if the user writes it, and
+the runtime module names start with an underscore that user code has no
+business importing.
+"""
+
+# Marker attribute the parser inserts in place of a `?` so Python's own parser
+# can read an optional-chaining expression; it never survives into output.
+str CHAIN_GUARD = "__typyg__"
+
+# Loop variable of `repeat N:` (the spec's compiler-owned throwaway name).
+str REPEAT_VARIABLE = "__"
+
+# How generated code refers to the runtime support package.
+str RUNTIME_MODULE = "_typy_runtime"
+str RUNTIME_ALIAS = "typy"
+
+# Companion package that hosts the `--gui` enforcement monitor.
+str MONITOR_MODULE = "_typy_monitor"

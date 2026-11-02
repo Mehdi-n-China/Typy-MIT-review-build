@@ -1,0 +1,26 @@
+"""``until condition:`` (spec §19)."""
+
+from ..tree import UntilLoop, place
+from ._bridge import parse_python_expression
+from ._body import parse_body, require_header_colon
+from ._else_clause import parse_else_clause
+from ._errors import syntax_error
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+
+tuple parse_until(ParseContext ctx, list lines, int index, list decorators):
+    """Parse ``until test:`` (with an optional ``else:``)."""
+    LogicalLine line = lines[index]
+    int colon = require_header_colon(ctx, line, "until")
+
+    if colon == 1:
+        raise syntax_error(ctx, "'until' needs a condition", line.first)
+
+    dyn test = parse_python_expression(ctx, line.tokens[1:colon])
+    list body = parse_body(ctx, line, colon, "'until'")
+
+    dyn orelse = None
+    orelse, index = parse_else_clause(ctx, lines, index + 1)
+
+    return [place(UntilLoop(test, body, orelse), line.first, line.tokens[colon])], index

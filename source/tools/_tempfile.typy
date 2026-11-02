@@ -1,0 +1,7 @@
+"""tempfile facade: staging directories for all-or-nothing builds."""
+
+import tempfile
+import types
+
+type TemporaryDirectory = tempfile.TemporaryDirectory
+types.FunctionType mkdtemp = tempfile.mkdtemp

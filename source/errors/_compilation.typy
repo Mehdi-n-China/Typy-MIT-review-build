@@ -1,0 +1,20 @@
+"""Several diagnostics reported together."""
+
+from ._base import TypyBaseError
+
+
+class TypyCompilationError(TypyBaseError):
+    """Several diagnostics gathered from one file (or one whole build).
+
+    Semantic checks keep going after the first problem so the user can fix
+    everything in one pass; this class carries the full list in ``errors``.
+    """
+
+    void __init__(dyn self, dyn errors):
+        self.errors = list(errors)
+
+        int count = len(self.errors)
+        super().__init__(f"{count} compilation error{'s' if count != 1 else ''}")
+
+    str __str__(dyn self):
+        return "\n".join(str(error) for error in self.errors) or self.message

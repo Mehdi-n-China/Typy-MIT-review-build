@@ -1,0 +1,25 @@
+
+"""Fixed names of the .typyexp format (format version 1)."""
+
+str ARCHIVE_SUFFIX = ".typyexp"
+str MANIFEST_NAME = "typyexp.json"
+str PAYLOAD_DIR = "project"
+int FORMAT_VERSION = 1
+
+
+# Directories that never belong in a shared project, at any depth.
+frozenset EXCLUDED_DIRECTORIES = frozenset(
+    {
+        "__pycache__",
+        ".git",
+        ".hg",
+        ".svn",
+        ".idea",
+        ".vscode",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".mypy_cache",
+        ".pytest_cache",
+    }
+)

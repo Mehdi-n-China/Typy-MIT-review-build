@@ -1,0 +1,99 @@
+"""``i(0) while cond:`` and ``i(0) until cond:`` (spec §17-18)."""
+
+from .. import tools
+from ..lexer import find_closing_bracket, LogicalLine
+from ..reserved import PY_HARD_KEYWORDS, STATEMENT_KEYWORDS
+from ..tree import InitializedLoop, LoopBinding, place
+from ._bridge import parse_python_expression
+from ._body import parse_body, require_header_colon
+from ._else_clause import parse_else_clause
+from ._errors import syntax_error
+from ._context import ParseContext
+
+
+dyn match_initialized_loop(list tokens):
+    """Recognise ``name(init)[, name2(init2)]* while|until`` at the start of
+    ``tokens``. Returns ``(specs, keyword_index, mode)`` where each spec is
+    ``(name_token, open_index, close_index)``, or ``None``.
+
+    ``f(x)`` or ``f(x), g(y)`` on their own are ordinary expression
+    statements; only the trailing ``while`` / ``until`` makes this a loop.
+    """
+
+    list specs = []
+    int index = 0
+
+    while True:
+        if index + 1 >= len(tokens):
+            return None
+
+        dyn name = None
+        dyn opener = None
+        name, opener = tokens[index], tokens[index + 1]
+
+        if name.type != tools.tokens.NAME or name.string in PY_HARD_KEYWORDS or name.string in STATEMENT_KEYWORDS:
+            return None
+
+        if opener.type != tools.tokens.OP or opener.string != "(":
+            return None
+
+        int close = find_closing_bracket(tokens, index + 1)
+        specs.append((name, index + 1, close))
+
+        int after = close + 1
+
+        if after < len(tokens) and tokens[after].type == tools.tokens.OP and tokens[after].string == ",":
+            index = after + 1
+            continue
+
+        break
+
+    # A trailing loop keyword distinguishes this syntax from ordinary calls.
+    if after >= len(tokens) or tokens[after].type != tools.tokens.NAME or tokens[after].string not in ("while", "until"):
+        return None
+
+    return specs, after, tokens[after].string
+
+
+tuple parse_initialized_loop(ParseContext ctx, list lines, int index, list decorators):
+    """Parse an initialized loop into an ``InitializedLoop``."""
+
+    LogicalLine line = lines[index]
+    list tokens = line.tokens
+
+    dyn specs = None
+    dyn keyword_index = None
+    dyn mode = None
+    specs, keyword_index, mode = match_initialized_loop(tokens)
+
+    int colon = require_header_colon(ctx, line, mode, start=keyword_index + 1)
+
+    if colon == keyword_index + 1:
+        raise syntax_error(ctx, f"'{mode}' needs a condition", tokens[keyword_index])
+
+    list bindings = []
+    set seen = set()
+
+    # Build each loop binding and reject duplicate or uninitialized variables.
+    for name, open_index, close_index in specs:
+        if name.string in seen:
+            raise syntax_error(ctx, f"loop variable '{name.string}' is initialized twice", name)
+
+        seen.add(name.string)
+        list init_tokens = tokens[open_index + 1:close_index]
+
+        if not init_tokens:
+            raise syntax_error(ctx, f"loop variable '{name.string}' needs an initial value", name)
+
+        dyn value = parse_python_expression(ctx, init_tokens)
+        bindings.append(place(LoopBinding(name.string, value), name, tokens[close_index]))
+
+    dyn test = parse_python_expression(ctx, tokens[keyword_index + 1:colon])
+    list body = parse_body(ctx, line, colon, f"'{mode}'")
+
+    dyn orelse = None
+    orelse, index = parse_else_clause(ctx, lines, index + 1)
+
+    InitializedLoop node = InitializedLoop(bindings, mode, test, body, orelse)
+
+    return [place(node, line.first, tokens[colon])], index

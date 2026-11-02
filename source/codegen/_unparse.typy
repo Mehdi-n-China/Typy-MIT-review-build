@@ -1,0 +1,37 @@
+"""Printing the lowered tree."""
+
+from .. import tools
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+tuple _BLOCKS = (
+    _PYAST.FunctionDef,
+    _PYAST.AsyncFunctionDef,
+    _PYAST.ClassDef,
+)
+
+
+str unparse_with_spacing(list statements):
+    """``ast.unparse`` each top-level statement and join them with a blank
+    line wherever a function or class is involved; the whole-module
+    ``unparse`` does not separate top-level definitions on its own."""
+
+    list pieces = []
+    dyn previous = None
+
+    for position, statement in enumerate(statements):
+        if previous is not None and (
+            isinstance(previous, _BLOCKS) or isinstance(statement, _BLOCKS)
+        ):
+            pieces.append("")
+
+        dyn printable = statement
+
+        if position == 0:
+            # Unparsing as a module preserves the quotes of a leading docstring.
+            printable = _PYAST.Module(body=[statement], type_ignores=[])
+
+        pieces.append(_PYAST.unparse(printable))
+        previous = statement
+
+    return "\n".join(pieces) + "\n"

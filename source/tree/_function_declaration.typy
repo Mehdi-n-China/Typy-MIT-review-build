@@ -1,0 +1,29 @@
+"""``TYPE name(TYPE param, ...):`` plus its body."""
+
+from ._base import TypyStatement
+
+
+class FunctionDeclaration(TypyStatement):
+    """A function written with Typy's typed signature (spec §15).
+
+    This replaces Python's ``def``, which is not valid Typy. ``signature`` is
+    a ``Signature``; ``decorators`` is a list of expressions; ``is_async`` is
+    true for ``async TYPE name(...)``. Lowers to ``def`` / ``async def`` with
+    annotations.
+    """
+
+    tuple _fields = ("name", "signature", "body", "decorators", "is_async")
+
+    void __init__(
+        FunctionDeclaration self,
+        dyn name = None,
+        dyn signature = None,
+        dyn body = None,
+        dyn decorators = None,
+        bool is_async = False,
+    ):
+        self.name = name
+        self.signature = signature
+        self.body = body if body is not None else []
+        self.decorators = decorators if decorators is not None else []
+        self.is_async = is_async

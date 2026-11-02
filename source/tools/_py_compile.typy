@@ -1,0 +1,7 @@
+"""py_compile facade: ``--bytecode`` turns generated source into .pyc files."""
+
+import py_compile
+import types
+
+types.FunctionType compile = py_compile.compile
+type PyCompileError = py_compile.PyCompileError

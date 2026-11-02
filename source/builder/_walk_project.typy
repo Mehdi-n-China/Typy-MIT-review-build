@@ -1,0 +1,62 @@
+"""Finding the files of a project."""
+
+from .. import tools
+from ..ignore import load_ignore_matcher
+
+
+frozenset _NEVER = frozenset({"__pycache__"})
+
+
+tools.types.GeneratorType walk_project(
+    tools.path.Path root,
+    bool lightweight = False,
+):
+    """Yield ``(path, is_typy)`` for every project file that belongs in a build.
+
+    Left out: the top-level ``output/`` folder (the build's own target), hidden
+    files and folders (dot-prefixed), ``__pycache__``, compiled ``.pyc`` files,
+    ``.typyignore`` itself and anything it excludes. With ``lightweight`` only
+    ``.typy`` and ``.py`` files are kept. Excluded folders are pruned, never
+    walked into, so huge ignored trees cost nothing.
+    """
+
+    dyn matcher = load_ignore_matcher(root)
+
+    # Check whether a path is excluded by the project's ignore rules.
+    bool ignored(tools.path.Path path, bool is_dir):
+        return (
+            matcher is not None
+            and matcher.matches(path.relative_to(root).as_posix(), is_dir)
+        )
+
+    for directory, subdirectories, names in tools.env.walk(root):
+        tools.path.Path here = tools.path.Path(directory)
+
+        # Prune excluded directories so the walk never descends into them.
+        subdirectories[:] = sorted(
+            name
+            for name in subdirectories
+            if not name.startswith(".")
+            and name not in _NEVER
+            and not (here == root and name == "output")
+            and not ignored(here / name, True)
+        )
+
+        for name in sorted(names):
+            tools.path.Path path = here / name
+
+            # Skip hidden files, bytecode, and files matched by ignore rules.
+            if (
+                name.startswith(".")
+                or path.suffix == ".pyc"
+                or ignored(path, False)
+            ):
+                continue
+
+            bool is_typy = path.suffix == ".typy"
+
+            # Lightweight builds include only Typy sources and Python files.
+            if lightweight and not is_typy and path.suffix != ".py":
+                continue
+
+            yield path, is_typy

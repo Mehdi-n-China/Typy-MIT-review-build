@@ -1,0 +1,58 @@
+"""Recognising literals in the syntax tree."""
+
+from .. import tools
+
+
+dict _CONSTANT_NAMES = {
+    type(None): "None",
+    bool: "bool",
+    int: "int",
+    float: "float",
+    str: "str",
+    bytes: "bytes",
+    complex: "complex",
+    type(Ellipsis): "Ellipsis",
+}
+
+dict _DISPLAYS = {
+    tools.pyast.List: "list",
+    tools.pyast.Tuple: "tuple",
+    tools.pyast.Set: "set",
+    tools.pyast.Dict: "dict",
+}
+
+set _NUMERIC = {"int", "float", "complex"}
+
+
+dyn literal_type_of(dyn node):
+    """The literal category of ``node`` (``"int"``, ``"str"``...) or ``None``.
+
+    Only expressions that are *directly* a literal count (spec §8-9): a
+    constant, a list/tuple/set/dict display, a negated number such as ``-5``,
+    or a complex literal written ``real +/- imaginary`` such as ``3+4j``.
+    Anything else, however obvious (``1 + 2``, ``len(x)``), is an arbitrary
+    expression that Typy deliberately trusts.
+
+    Matching is by exact type, so ``True`` is a ``bool`` and never an ``int``.
+    """
+    if isinstance(node, tools.pyast.Constant):
+        return _CONSTANT_NAMES.get(type(node.value))
+
+    for display, name in _DISPLAYS.items():
+        if isinstance(node, display):
+            return name
+
+    if isinstance(node, tools.pyast.UnaryOp) and isinstance(node.op, tools.pyast.USub):
+        dyn inner = literal_type_of(node.operand)
+        return inner if inner in _NUMERIC else None
+
+    if isinstance(node, tools.pyast.BinOp) and isinstance(node.op, (tools.pyast.Add, tools.pyast.Sub)):
+        # Only real/imaginary numeric literal combinations are classified as complex.
+        dyn left = None
+        dyn right = None
+        left, right = literal_type_of(node.left), literal_type_of(node.right)
+
+        if left in _NUMERIC and right in _NUMERIC and "complex" in (left, right):
+            return "complex"
+
+    return None

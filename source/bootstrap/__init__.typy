@@ -1,0 +1,18 @@
+"""
+Bootstrap: Typy rebuilding Typy.
+
+The compiler is written in Typy. Its sources live in ``source/`` (mirroring
+this package's layout) and every ``.py`` file of the package is their
+compiled form, produced by Typy itself:
+
+    python -m Typy.bootstrap            recompile source/ into the package
+    python -m Typy.bootstrap --check    verify the package is exactly what its
+                                        own sources compile to (a fixpoint)
+
+``_stage0.py`` is all that is left of the Python host that compiled the very
+first Typy-written compiler.
+
+Since: 1.5.0 (self-rebuilding since 2.0.0)
+"""
+
+from ._rebuild import rebuild

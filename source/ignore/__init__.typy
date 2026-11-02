@@ -1,0 +1,7 @@
+"""
+``.typyignore``: gitignore-style exclusions for project builds.
+
+Since: 1.3.0
+"""
+
+from ._loader import load_ignore_matcher

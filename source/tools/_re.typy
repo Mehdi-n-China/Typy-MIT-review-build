@@ -1,0 +1,9 @@
+"""re facade: pattern matching for dotted names and version strings."""
+
+import re
+import types
+
+types.FunctionType compile = re.compile
+types.FunctionType fullmatch = re.fullmatch
+
+type Pattern = re.Pattern

@@ -1,0 +1,41 @@
+"""
+A tour of what Typy grew after 2.0: positional-only and keyword-only
+parameters, typed variadics, single-underscore throwaways, typed methods,
+and optional chaining through subscripts.
+
+Build it with   python -m Typy build Typy/example_project --enforce
+"""
+
+
+class Counter:
+    None __init__(dyn self, int start = 0):
+        self.value = start
+
+    int bump(dyn self, int by = 1):
+        self.value += by
+        return self.value
+
+
+int total(*int values, int bonus = 0):
+    return sum(values) + bonus
+
+
+str describe(str name, /, *, str greeting = "hello"):
+    return greeting + " " + name
+
+
+dyn counter = Counter()
+repeat 3:
+    counter.bump()
+
+for _ in range(2):
+    counter.bump(by=10)
+
+dyn settings = {"theme": {"color": "teal"}}
+str color = settings?["theme"]?["color"]
+dyn missing = settings.get("fonts")?["size"]
+
+print(describe("typy", greeting="hi"))
+print(total(1, 2, 3, bonus=4))
+print(counter.value)
+print(color, missing)

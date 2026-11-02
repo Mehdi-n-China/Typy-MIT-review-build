@@ -1,0 +1,16 @@
+"""The literal categories Typy can check at compile time (spec §8)."""
+
+frozenset LITERAL_TYPES = frozenset({
+    "int",
+    "float",
+    "str",
+    "bool",
+    "None",
+    "list",
+    "tuple",
+    "set",
+    "dict",
+    "bytes",
+    "complex",
+    "Ellipsis",
+})

@@ -1,0 +1,13 @@
+"""Base classes of the Typy AST."""
+from .. import tools
+
+class TypyStatement(tools.pyast.stmt):
+    """A statement that exists only in Typy (it carries Python's usual
+    ``lineno`` / ``col_offset`` / ``end_*`` location attributes)."""
+
+class TypyExpression(tools.pyast.expr):
+    """An expression that exists only in Typy."""
+
+class TypyNode(tools.pyast.AST):
+    """Auxiliary Typy node that is neither a statement nor an expression
+    (a type reference, a parameter, one branch of a conditional...)."""

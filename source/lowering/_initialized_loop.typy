@@ -1,0 +1,68 @@
+"""``InitializedLoop`` -> init, ``try`` / ``while`` / ``finally: del``."""
+
+from .. import tools
+from ._negate import negate
+from ._walk import lower_list, lower_node
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list lower_initialized_loop(dyn node, CompileContext ctx):
+    """``i(0) while i < 3:`` becomes::
+
+        i: Any = 0
+        try:
+            while i < 3:
+                ...
+        finally:
+            del i
+
+    The variables are declared ``dyn`` (shown as ``Any``) and deleted however
+    the loop ends, including ``break`` and exceptions (spec §17). ``until``
+    negates the test. The ``else`` block stays attached to the ``while``.
+    """
+
+    ctx.uses_any = True
+
+    # Declare each initialized variable before entering the protected loop.
+    list statements = [
+        _PYAST.AnnAssign(
+            target=_PYAST.Name(id=binding.name, ctx=_PYAST.Store()),
+            annotation=_PYAST.Name(id="Any", ctx=_PYAST.Load()),
+            value=lower_node(binding.value, ctx),
+            simple=1,
+        )
+        for binding in node.bindings
+    ]
+
+    dyn test = lower_node(node.test, ctx)
+
+    if node.mode == "until":
+        test = negate(test)
+
+    _PYAST.While loop = _PYAST.While(
+        test=test,
+        body=lower_list(node.body, ctx),
+        orelse=lower_list(node.orelse, ctx),
+    )
+
+    # The finally block guarantees cleanup on normal exit, break, or exception.
+    _PYAST.Delete cleanup = _PYAST.Delete(
+        targets=[
+            _PYAST.Name(id=binding.name, ctx=_PYAST.Del())
+            for binding in node.bindings
+        ]
+    )
+
+    statements.append(
+        _PYAST.Try(
+            body=[loop],
+            handlers=[],
+            orelse=[],
+            finalbody=[cleanup],
+        )
+    )
+
+    return [_PYAST.copy_location(statement, node) for statement in statements]

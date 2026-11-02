@@ -1,0 +1,28 @@
+"""Which names a target or a pattern binds."""
+
+from .. import tools
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+tools.types.GeneratorType target_names(dyn target):
+    """Names bound by an assignment-style target (``a``, ``a, (b, c)``, ``*a``)."""
+    if isinstance(target, _PYAST.Name):
+        yield target.id
+
+    elif isinstance(target, (_PYAST.Tuple, _PYAST.List)):
+        for element in target.elts:
+            yield from target_names(element)
+
+    elif isinstance(target, _PYAST.Starred):
+        yield from target_names(target.value)
+
+
+tools.types.GeneratorType pattern_names(dyn node):
+    """Capture names bound by a ``match`` pattern node."""
+    if isinstance(node, (_PYAST.MatchAs, _PYAST.MatchStar)) and node.name:
+        yield node.name
+
+    elif isinstance(node, _PYAST.MatchMapping) and node.rest:
+        yield node.rest

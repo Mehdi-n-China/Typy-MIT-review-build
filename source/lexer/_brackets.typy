@@ -1,0 +1,85 @@
+"""Delimiter matching over token lists."""
+
+from .. import tools
+from ..errors import TypySyntaxError
+
+
+dict _PAIRS = {"(": ")", "[": "]", "{": "}"}
+frozenset _CLOSERS = frozenset(_PAIRS.values())
+
+
+int find_closing_bracket(list tokens, int open_index, str filename = '<typy>'):
+    """Index of the bracket that closes the one at ``tokens[open_index]``.
+
+    A mismatched or missing closer raises ``TypySyntaxError`` that names the
+    delimiter the user forgot.
+    """
+
+    list stack = []
+
+    # Track nested delimiters so the matching closer is unambiguous.
+    for index in range(open_index, len(tokens)):
+        tools.tokens.TokenInfo token = tokens[index]
+
+        if token.type != tools.tokens.OP:
+            continue
+
+        if token.string in _PAIRS:
+            stack.append(token)
+
+        elif token.string in _CLOSERS:
+            if not stack or _PAIRS[stack[-1].string] != token.string:
+                dyn opener = stack[-1].string if stack else None
+                str detail = f"expected '{_PAIRS[opener]}'" if opener else "no matching opening delimiter"
+
+                raise TypySyntaxError(
+                    f"unmatched '{token.string}': {detail}",
+                    token.start[0],
+                    token.start[1],
+                    filename
+                )
+
+            stack.pop()
+
+            if not stack:
+                return index
+
+    opener = tokens[open_index]
+
+    raise TypySyntaxError(
+        f"'{opener.string}' was never closed",
+        opener.start[0],
+        opener.start[1],
+        filename
+    )
+
+
+list split_top_level(list tokens, str separator = ','):
+    """Split ``tokens`` on ``separator`` tokens that sit outside any brackets.
+
+    Returns a list of token lists. An empty input gives an empty list; a
+    trailing separator does not add an empty final group.
+    """
+
+    list groups = []
+    list group = []
+    int depth = 0
+
+    # Only separators at depth zero divide the token stream.
+    for token in tokens:
+        if token.type == tools.tokens.OP:
+            if token.string in _PAIRS:
+                depth += 1
+            elif token.string in _CLOSERS:
+                depth -= 1
+            elif token.string == separator and depth == 0:
+                groups.append(group)
+                group = []
+                continue
+
+        group.append(token)
+
+    if group:
+        groups.append(group)
+
+    return groups

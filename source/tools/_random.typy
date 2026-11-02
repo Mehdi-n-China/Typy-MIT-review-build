@@ -1,0 +1,6 @@
+"""random facade: ``rng.int(a, b)`` is an inclusive random integer."""
+
+import random
+import types
+
+types.MethodType int = random.randint

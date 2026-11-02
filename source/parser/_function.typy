@@ -1,0 +1,90 @@
+"""Typed function signatures: ``TYPE name(TYPE param, ...):`` (spec §15)."""
+
+from .. import tools
+from ..lexer import find_closing_bracket, LogicalLine, read_dotted_name
+from ..reserved import PY_HARD_KEYWORDS
+from ..tree import FunctionDeclaration, Signature, TypeRef, place
+from ._body import parse_body
+from ._parameters import parse_parameters
+from ._context import ParseContext
+
+
+dyn match_function_declaration(list tokens):
+    """Recognise ``[async] TYPE name(...) :``.
+
+    A type name, then a second name, then ``(`` is never a Python call
+    (``f(x)`` has one name, ``a.b(x)`` has none after the dotted part), so
+    this is unambiguous. Returns ``(is_async, type_parts, name_index)`` or
+    ``None``.
+    """
+
+    bool is_async = tokens[0].type == tools.tokens.NAME and tokens[0].string == "async"
+
+    dyn parsed = read_dotted_name(tokens, 1 if is_async else 0)
+    if parsed is None:
+        return None
+
+    dyn after_type = None
+    dyn parts = None
+    after_type, parts = parsed
+
+    if after_type + 1 >= len(tokens):
+        return None
+
+    dyn name = None
+    dyn opener = None
+    name, opener = tokens[after_type], tokens[after_type + 1]
+
+    if name.type != tools.tokens.NAME or name.string in PY_HARD_KEYWORDS:
+        return None
+
+    if opener.type != tools.tokens.OP or opener.string != "(":
+        return None
+
+    # The closing bracket must be followed by the function-header colon.
+    int close = find_closing_bracket(tokens, after_type + 1)
+    dyn colon = tokens[close + 1] if close + 1 < len(tokens) else None
+
+    if colon is None or colon.type != tools.tokens.OP or colon.string != ":":
+        return None
+
+    return is_async, parts, after_type
+
+
+tuple parse_function_declaration(ParseContext ctx, list lines, int index, list decorators):
+    """Parse a typed function and its body into a ``FunctionDeclaration``."""
+
+    LogicalLine line = lines[index]
+    list tokens = line.tokens
+
+    dyn is_async = None
+    dyn parts = None
+    dyn name_index = None
+    is_async, parts, name_index = match_function_declaration(tokens)
+
+    dyn open_index = name_index + 1
+    int close_index = find_closing_bracket(tokens, open_index, ctx.filename)
+    int colon = close_index + 1
+
+    list parameters = parse_parameters(
+        ctx,
+        tokens[open_index + 1:close_index],
+        tokens[name_index],
+    )
+
+    int first_type_index = 1 if is_async else 0
+    dyn returns = place(TypeRef(parts), tokens[first_type_index], tokens[name_index - 1])
+    dyn signature = place(Signature(parameters, returns), tokens[first_type_index], tokens[close_index])
+
+    str name = tokens[name_index].string
+    list body = parse_body(ctx, line, colon, f"function '{name}'")
+
+    FunctionDeclaration node = FunctionDeclaration(
+        name,
+        signature,
+        body,
+        list(decorators),
+        is_async,
+    )
+
+    return [place(node, tokens[0], tokens[colon])], index + 1

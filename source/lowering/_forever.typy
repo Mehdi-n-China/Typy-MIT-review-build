@@ -1,0 +1,21 @@
+"""``ForeverLoop`` -> ``while True``."""
+
+from .. import tools
+from ..context import CompileContext
+from ._walk import lower_list
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list lower_forever(dyn node, CompileContext ctx):
+    """``forever:`` is ``while True:``."""
+
+    # A forever loop has a constant-true test and otherwise behaves like a while loop.
+    _PYAST.While lowered = _PYAST.While(
+        test=_PYAST.Constant(value=True),
+        body=lower_list(node.body, ctx),
+        orelse=lower_list(node.orelse, ctx),
+    )
+
+    return [_PYAST.copy_location(lowered, node)]

@@ -1,0 +1,27 @@
+"""A Python scope as Typy tracks it."""
+
+
+class Scope:
+    """One module, function or class scope.
+
+    ``known``     every name the scope binds *anywhere* in its body. Python
+                  decides which names are local by scanning the whole body
+                  first, and Typy's "declare before assigning" rule uses the
+                  same scope-wide view, not source order.
+    ``current``   the typed ``Binding`` of each name as of the statement being
+                  resolved (source order: redeclaring replaces it).
+    ``outer``     names declared ``global`` / ``nonlocal`` here; their real
+                  declaration lives in another scope.
+    ``voids``     ``void`` functions defined directly in this scope.
+    """
+
+    void __init__(Scope self, dyn kind, dyn parent = None):
+        self.kind = kind
+        self.parent = parent
+
+        # Track declarations separately from their current type bindings.
+        self.known = set()
+        self.current = {}
+
+        self.outer = set()
+        self.voids = set()

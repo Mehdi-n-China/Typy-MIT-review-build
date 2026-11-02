@@ -1,0 +1,12 @@
+"""
+Runtime support shipped with compiled programs.
+
+Nothing in here may import the compiler: these two packages are copied into
+every build's ``output/`` folder and have to work with no Typy installed.
+
+    typy/      copied as ``_typy_runtime``: the checks ``--enforce`` calls
+    monitor/   copied as ``_typy_monitor`` (only with ``--gui``): the live
+               enforcement monitor
+
+Since: 1.0.0 (split into two packages in 2.3.0).
+"""

@@ -1,0 +1,35 @@
+"""Opening a media file with whatever the operating system uses."""
+
+from .. import tools
+
+
+bool play_file(tools.path.Path path):
+    """Open ``path`` with the platform's default player.
+
+    Returns ``True`` once the player has been launched, ``False`` if the file
+    does not exist or no player could be started; callers fall back to the
+    plain beep in that case, as the spec requires.
+    """
+
+    if not path.is_file():
+        return False
+
+    try:
+        if tools.sys.platform == "win32" and tools.env.startfile is not None:
+            tools.env.startfile(path)
+        else:
+            str opener = "open" if tools.sys.platform == "darwin" else "xdg-open"
+
+            tools.procs.Popen player = tools.procs.Popen(
+                [opener, str(path)],
+                stdout=tools.procs.DEVNULL,
+                stderr=tools.procs.DEVNULL,
+            )
+
+            # Reap the opener if it already finished; never wait for the player itself.
+            player.poll()
+
+    except OSError:
+        return False
+
+    return True

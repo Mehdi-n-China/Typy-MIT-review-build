@@ -1,0 +1,14 @@
+"""Refusing to replace existing output."""
+
+from .. import tools
+from ._base import TypyBaseError
+
+
+class TypyNotAllowedToOverride(TypyBaseError):
+    """The output already exists and --override was not given."""
+
+    void __init__(dyn self, tools.path.Path output_dir):
+        super().__init__(
+            f"'{output_dir}' already exists. Pass --override to replace it.",
+            hint="re-run with --override if replacing it is what you want",
+        )

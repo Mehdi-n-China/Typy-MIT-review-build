@@ -1,0 +1,25 @@
+"""Walking a scope's code without wandering into nested scopes."""
+
+from .. import tools
+from ..tree import is_scope_node
+
+
+tools.types.GeneratorType walk_same_scope(list nodes):
+    """Yield every node reachable from ``nodes`` that belongs to the *same*
+    Python scope.
+
+    Function and class definitions are yielded (their names are bound in this
+    scope) but never entered, and neither are lambdas, whose parameters live in a
+    scope of their own.
+    """
+    list stack = list(reversed(nodes))
+
+    while stack:
+        dyn node = stack.pop()
+        yield node
+
+        # Nested scopes are visible here, but their contents belong elsewhere.
+        if is_scope_node(node) or isinstance(node, tools.pyast.Lambda):
+            continue
+
+        stack.extend(reversed(list(tools.pyast.iter_child_nodes(node))))

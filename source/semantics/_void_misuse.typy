@@ -1,0 +1,25 @@
+"""A ``void`` function's result may never be used as a value (spec §13)."""
+
+from ..tree import child_blocks, Program
+from ._expression_roots import expression_roots
+from ._void_scan import scan_for_void_calls
+from ._diagnostics import Diagnostics
+from ._scope import Scope
+
+
+void _check_statements(list statements, Scope scope, Diagnostics diagnostics):
+    for statement in statements:
+        for root in expression_roots(statement):
+            scan_for_void_calls(root, statement, None, scope, diagnostics)
+
+        dyn inner = getattr(statement, "scope", scope)  # functions and classes open their own scope
+
+        for block in child_blocks(statement):
+            _check_statements(block, inner, diagnostics)
+
+
+void check_void_misuse(Program program, Diagnostics diagnostics):
+    """Report calls to ``void`` functions whose result is used as a value
+    (assigned, passed along, returned, printed...). Only functions declared in
+    the file being compiled are known: the compiler sees one file at a time."""
+    _check_statements(program.body, program.scope, diagnostics)

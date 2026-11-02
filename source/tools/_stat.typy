@@ -1,0 +1,7 @@
+"""stat facade: permission bits for ``--standalone`` executables."""
+
+import stat
+
+int S_IXUSR = stat.S_IXUSR
+int S_IXGRP = stat.S_IXGRP
+int S_IXOTH = stat.S_IXOTH

@@ -1,0 +1,12 @@
+"""
+Typy logger.
+
+``logger`` is the process-wide instance. It records events and crashes in a
+per-run log file and keeps the usage counters behind ``typy stats``. Nothing
+touches the disk until the first thing is logged, so merely importing Typy
+(or running ``typy version``) leaves no files behind.
+
+Since: 1.4.0
+"""
+from ._logger import Logger
+logger: Logger = Logger()

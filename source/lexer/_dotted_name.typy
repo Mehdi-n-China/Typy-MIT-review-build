@@ -1,0 +1,46 @@
+"""Reading (possibly dotted) type names such as ``int`` or ``Parent.Car``."""
+
+from .. import tools
+from ..reserved import PY_HARD_KEYWORDS
+
+
+frozenset _NOT_TYPE_NAMES = PY_HARD_KEYWORDS - {"None"}
+
+
+dyn read_dotted_name(list tokens, int start):
+    """Parse ``NAME (. NAME)*`` starting at ``tokens[start]``.
+
+    Returns ``(end_index, parts)`` where ``end_index`` is the index just past
+    the name and ``parts`` is the list of dotted segments, or ``None`` if
+    there is no usable name at ``start``. Python's hard keywords never count
+    (``return Car()`` is not a type), with one exception: ``None`` is a real
+    Typy type for both variables and return values.
+    """
+
+    if start >= len(tokens):
+        return None
+
+    tools.tokens.TokenInfo first = tokens[start]
+
+    if first.type != tools.tokens.NAME or first.string in _NOT_TYPE_NAMES:
+        return None
+
+    # ``None`` is intentionally accepted even though it is a Python keyword.
+    if first.string == "None":
+        return start + 1, ["None"]
+
+    list parts = [first.string]
+    int index = start + 1
+
+    # Consume dotted segments only while each segment is a valid type name.
+    while (
+        index + 1 < len(tokens)
+        and tokens[index].type == tools.tokens.OP
+        and tokens[index].string == "."
+        and tokens[index + 1].type == tools.tokens.NAME
+        and tokens[index + 1].string not in PY_HARD_KEYWORDS
+    ):
+        parts.append(tokens[index + 1].string)
+        index += 2
+
+    return index, parts

@@ -1,0 +1,70 @@
+"""``TYPE name = value`` declarations (spec §5)."""
+
+from .. import tools
+from ..lexer import read_dotted_name
+from ..reserved import PY_HARD_KEYWORDS
+from ..tree import TypedDeclaration, TypeRef, place
+from ._bridge import parse_python_expression
+from ._errors import syntax_error
+from ._context import ParseContext
+
+
+dyn match_typed_declaration(list tokens):
+    """Recognise ``TYPE name =`` at the start of ``tokens``.
+
+    Two names in a row followed by ``=`` is never valid Python (not even a
+    soft keyword produces it), so this pattern is unambiguous. Returns
+    ``(type_parts, name_token, equals_index)`` or ``None``.
+    """
+    dyn parsed = read_dotted_name(tokens, 0)
+
+    if parsed is None:
+        return None
+
+    dyn after_type = None
+    dyn parts = None
+    after_type, parts = parsed
+
+    if after_type + 1 >= len(tokens):
+        return None
+
+    tools.tokens.TokenInfo name = tokens[after_type]
+    tools.tokens.TokenInfo equals = tokens[after_type + 1]
+
+    if name.type != tools.tokens.NAME or name.string in PY_HARD_KEYWORDS:
+        return None
+
+    if equals.type != tools.tokens.OP or equals.string != "=":
+        return None
+
+    return parts, name, after_type + 1
+
+
+TypedDeclaration parse_typed_declaration(ParseContext ctx, list tokens, dyn match):
+    """Build a ``TypedDeclaration`` from tokens that ``match`` recognised."""
+    dyn parts = None
+    dyn name = None
+    dyn equals_index = None
+    parts, name, equals_index = match
+
+    if parts == ["void"]:
+        raise syntax_error(
+            ctx,
+            "'void' is only valid as a function return type",
+            tokens[0],
+            hint="declare a variable with a real type, or use 'dyn' if it may hold anything",
+        )
+
+    list value_tokens = tokens[equals_index + 1:]
+
+    if not value_tokens:
+        raise syntax_error(
+            ctx,
+            f"expected a value after '=' in the declaration of '{name.string}'",
+            tokens[equals_index],
+        )
+
+    dyn value = parse_python_expression(ctx, value_tokens)
+    dyn type_ref = place(TypeRef(parts), tokens[0], tokens[equals_index - 2])
+
+    return place(TypedDeclaration(type_ref, name.string, value), tokens[0], tokens[-1])

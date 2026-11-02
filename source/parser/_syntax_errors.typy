@@ -1,0 +1,34 @@
+"""Translating Python's own syntax errors into Typy diagnostics."""
+
+from .. import tools
+from ..errors import TypyIndentationError, TypySyntaxError
+from ._context import ParseContext
+
+
+dyn convert_python_error(
+    ParseContext ctx,
+    dyn error,
+    tools.tokens.TokenInfo first,
+    int stub_line = 1,
+    int col_shift = 0,
+):
+    """Turn a ``SyntaxError`` raised while parsing a snippet into a
+    ``TypySyntaxError`` (or ``TypyIndentationError``) located in the real file.
+
+    ``first`` is the first token of the snippet; ``stub_line`` / ``col_shift``
+    describe how the snippet was wrapped, mirroring ``relocate``.
+    """
+    dyn snippet_line = error.lineno or stub_line
+    dyn line = first.start[0] + snippet_line - stub_line
+    dyn col = None
+
+    if error.offset:
+        col = error.offset - 1
+
+        if snippet_line == stub_line:
+            col += first.start[1] + col_shift
+
+    # Preserve the distinction between indentation and other syntax errors.
+    dyn cls = TypyIndentationError if isinstance(error, IndentationError) else TypySyntaxError
+
+    return cls(error.msg, line, col, ctx.filename)

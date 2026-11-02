@@ -1,0 +1,96 @@
+"""Stress test: lots of ordinary Python inside Typy."""
+from __future__ import annotations
+import functools, asyncio
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Point:
+    int x = 0
+    int y = 0
+
+    float norm(dyn self):
+        return (self.x ** 2 + self.y ** 2) ** 0.5
+
+
+@functools.lru_cache(maxsize=None)
+int fib(int n):
+    if n < 2: return n
+    return fib(n - 1) + fib(n - 2)
+
+
+dict counts(list words, *, bool lower = True):
+    dict result = {}
+    for w in words:
+        dyn key = w.lower() if lower else w
+        result[key] = result.get(key, 0) + 1
+    return result
+
+
+list evens(int limit):
+    return [n for n in range(limit) if n % 2 == 0]
+
+
+list gen_squares(int n):
+    yield from (i * i for i in range(n))
+
+
+str describe(dyn value):
+    match value:
+        case {"kind": "point", "x": int(px)}:
+            return f"point at {px}"
+        case [first, *rest] if rest:
+            return f"list starting {first!r} (+{len(rest)})"
+        case Point(x=0, y=0):
+            return "origin"
+        case _:
+            return "something"
+
+
+async int add_later(int a, int b):
+    await asyncio.sleep(0)
+    return a + b
+
+
+async list gather_sums():
+    dyn results = []
+    async with Ctx() as c:
+        pass
+    return results
+
+
+class Ctx:
+    async dyn __aenter__(dyn self):
+        return self
+    async None __aexit__(dyn self, *dyn exc):
+        return None
+
+
+int total = 0
+dyn data = {"a": [1, 2, 3], "b": None}
+try:
+    total += sum(data?["a"] or [])
+    assert total == 6, "math is broken"
+except (KeyError, TypeError) as error:
+    raise RuntimeError("bad") from error
+else:
+    total += 1
+finally:
+    pass
+
+dyn maybe = data?["b"]?[0]
+dyn sliced = data?["a"]?[1:]
+dyn chained = 1 < total <= 100
+dyn lam = lambda x, y=2: (x + y, {k: v for k, v in zip("ab", [x, y])})
+dyn text = "multi" \
+    "line"
+if (n := len(text)) > 3:
+    total += n
+with open(__file__) as fh, open(__file__) as fh2:
+    dyn first_line = fh.readline()
+dyn global_value = None if False else total
+
+print(Point(3, 4).norm(), fib(20), counts(["A", "a", "b"]), evens(7), list(gen_squares(4)))
+print(describe({"kind": "point", "x": 5}), describe([1, 2, 3]), describe(Point()), describe(42))
+print(asyncio.run(add_later(2, 3)), asyncio.run(gather_sums()))
+print(total, maybe, sliced, chained, lam(1), text, first_line.strip()[:20], global_value)

@@ -1,0 +1,17 @@
+"""Hooking the monitor up to the runtime."""
+
+import atexit
+
+from ._monitor import EnforcementMonitor
+
+
+EnforcementMonitor attach(dyn runtime, str entry_point):
+    """Create a monitor, install it as ``runtime``'s hook and arrange for its
+    summary to print at exit. Returns the monitor."""
+    EnforcementMonitor monitor = EnforcementMonitor(entry_point)
+
+    monitor.start()
+    runtime.set_monitor(monitor)
+    atexit.register(monitor.finish)
+
+    return monitor

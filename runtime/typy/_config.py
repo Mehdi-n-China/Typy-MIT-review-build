@@ -1,0 +1,7 @@
+"""
+Build-time configuration of the runtime.
+
+``typy build --gui`` rewrites this file in the *output* copy of the runtime
+(never this source file) so the monitor starts when the program does.
+"""
+GUI: bool = False

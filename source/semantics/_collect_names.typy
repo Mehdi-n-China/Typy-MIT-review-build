@@ -1,0 +1,59 @@
+"""Pre-scan: which names does a scope bind?"""
+
+from .. import tools
+from ..tree import FunctionDeclaration, InitializedLoop, LoopBinding, TypedDeclaration
+from ._bound_names import pattern_names, target_names
+from ._same_scope import walk_same_scope
+from ._scope import Scope
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+void collect_names(list body, Scope scope):
+    """Fill ``scope.known`` / ``scope.outer`` / ``scope.voids`` from ``body``.
+
+    This is Python's own approach to locals: look at the whole body first, so
+    the answer does not depend on statement order. Plain assignments do *not*
+    declare a name (that is the whole point of the declaration rule); typed
+    declarations, loop and ``with`` targets, ``except ... as``, imports,
+    definitions, walrus targets, ``match`` captures and loop bindings do.
+    """
+    # Collect bindings across the entire scope before resolving individual statements.
+    for node in walk_same_scope(body):
+        if isinstance(node, TypedDeclaration):
+            scope.known.add(node.name)
+
+        elif isinstance(node, _PYAST.AnnAssign):
+            scope.known.update(target_names(node.target))
+
+        elif isinstance(node, (_PYAST.For, _PYAST.AsyncFor)):
+            scope.known.update(target_names(node.target))
+
+        elif isinstance(node, _PYAST.withitem) and node.optional_vars is not None:
+            scope.known.update(target_names(node.optional_vars))
+
+        elif isinstance(node, _PYAST.ExceptHandler) and node.name:
+            scope.known.add(node.name)
+
+        elif isinstance(node, (_PYAST.ClassDef, FunctionDeclaration, _PYAST.FunctionDef, _PYAST.AsyncFunctionDef)):
+            scope.known.add(node.name)
+
+            if isinstance(node, FunctionDeclaration) and node.signature.returns.is_void:
+                scope.voids.add(node.name)
+
+        elif isinstance(node, (_PYAST.Import, _PYAST.ImportFrom)):
+            for alias in node.names:
+                scope.known.add(alias.asname or alias.name.split(".")[0])
+
+        elif isinstance(node, (_PYAST.Global, _PYAST.Nonlocal)):
+            scope.outer.update(node.names)
+
+        elif isinstance(node, _PYAST.NamedExpr):
+            scope.known.update(target_names(node.target))
+
+        elif isinstance(node, LoopBinding):
+            scope.known.add(node.name)
+
+        else:
+            scope.known.update(pattern_names(node))

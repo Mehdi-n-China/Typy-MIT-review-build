@@ -1,0 +1,17 @@
+"""
+The ``.typyexp`` project archive: ``typy export`` writes one, ``typy import``
+reads one back.
+
+A ``.typyexp`` is a zip file holding a manifest (``typyexp.json``: format
+version, the Typy version that wrote it, and each file's size and SHA-256)
+plus the project's files under ``project/``. Reading one verifies every
+digest and refuses paths that would escape the destination folder.
+
+Since: 2.2.0
+"""
+
+from ._collect import collect_export_files
+from ._constants import ARCHIVE_SUFFIX, FORMAT_VERSION, MANIFEST_NAME
+from ._read import extract_archive, read_manifest
+from ._versions import parse_version
+from ._write import write_archive

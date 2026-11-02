@@ -1,0 +1,31 @@
+"""Is a function body a generator?"""
+
+from .. import tools
+from ..tree import is_scope_node
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+tools.types.GeneratorType walk_function_body(list statements):
+    """Yield every node of a function body that belongs to *that* function
+    (nested functions, classes and lambdas are skipped)."""
+
+    list stack = list(statements)
+
+    while stack:
+        dyn node = stack.pop()
+        yield node
+
+        if not is_scope_node(node) and not isinstance(node, _PYAST.Lambda):
+            stack.extend(_PYAST.iter_child_nodes(node))
+
+
+bool contains_yield(list statements):
+    """True if the body contains ``yield`` / ``yield from``, i.e. calling the
+    function produces a generator and ``return`` has different meaning."""
+
+    return any(
+        isinstance(node, (_PYAST.Yield, _PYAST.YieldFrom))
+        for node in walk_function_body(statements)
+    )

@@ -1,0 +1,38 @@
+"""Finding the colon that ends a statement header."""
+
+from .. import tools
+
+
+dyn find_header_colon(list tokens, int start = 0):
+    """Index of the first ``:`` at or after ``start`` that ends the header.
+
+    Colons inside brackets (slices, dict displays, f-string format specs) are
+    skipped by tracking depth, and so is the colon belonging to a ``lambda``
+    sitting at the top level of the header. Returns ``None`` if there is no
+    header colon.
+    """
+
+    int depth = 0
+    dict pending_lambdas = {}
+
+    # Track lambda expressions separately at each nesting depth.
+    for index in range(start, len(tokens)):
+        tools.tokens.TokenInfo token = tokens[index]
+
+        if token.type == tools.tokens.NAME and token.string == "lambda":
+            pending_lambdas[depth] = pending_lambdas.get(depth, 0) + 1
+
+        elif token.type == tools.tokens.OP:
+            if token.string in "([{":
+                depth += 1
+
+            elif token.string in ")]}":
+                depth -= 1
+
+            elif token.string == ":":
+                if pending_lambdas.get(depth, 0) > 0:
+                    pending_lambdas[depth] -= 1
+                elif depth == 0:
+                    return index
+
+    return None

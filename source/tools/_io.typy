@@ -1,0 +1,5 @@
+"""io facade: in-memory text streams (the tokenizer reads from one)."""
+
+import io
+
+type StringIO = io.StringIO

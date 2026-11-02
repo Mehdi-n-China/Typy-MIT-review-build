@@ -1,0 +1,34 @@
+"""Where the generated imports go."""
+
+from .. import tools
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+void insert_header(dyn module, list header):
+    """Insert ``header`` into ``module.body`` after the module docstring and
+    any ``from __future__ import ...`` lines, which Python requires to come
+    first."""
+
+    list body = module.body
+    int index = 0
+
+    # Preserve the module docstring as the first statement.
+    if (
+        body
+        and isinstance(body[0], _PYAST.Expr)
+        and isinstance(body[0].value, _PYAST.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        index = 1
+
+    # Future imports must remain ahead of all generated imports.
+    while (
+        index < len(body)
+        and isinstance(body[index], _PYAST.ImportFrom)
+        and body[index].module == "__future__"
+    ):
+        index += 1
+
+    module.body = body[:index] + header + body[index:]

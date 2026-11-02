@@ -1,0 +1,44 @@
+"""Copying a project's non-Typy files into the staging folder."""
+
+from .. import tools
+from ..errors import TypyProjectError
+from ._plan import BuildPlan
+from ._reporter import Reporter
+from ._stage_compiled import StagedCode
+
+
+void stage_resource_files(
+    BuildPlan plan,
+    tools.path.Path staging,
+    StagedCode staged,
+    Reporter report,
+):
+    """Copy every resource file (images, data, plain ``.py``...) to the same
+    relative place in ``staging``.
+
+    A plain ``.py`` that would land on a compiled file's output path (say
+    ``util.typy`` and ``util.py`` side by side) is refused instead of one
+    silently overwriting the other.
+    """
+
+    for path in plan.resource_files:
+        tools.path.Path relative = path.relative_to(plan.root)
+
+        # Prevent a resource file from overwriting a compiled output.
+        if relative.as_posix() in staged.relative_outputs:
+            raise TypyProjectError(
+                f"'{relative.as_posix()}' would overwrite the compiled output of "
+                f"'{relative.with_suffix('.typy').as_posix()}'",
+                hint="rename one of the two files",
+            )
+
+        # Preserve the resource file's relative location in staging.
+        tools.path.Path target = staging / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tools.fs.copyfile(path, target)
+
+        # Include directories containing copied Python files in the package tree.
+        if target.suffix == ".py":
+            staged.python_dirs.add(target.parent)
+
+        report.step(f"copied {relative.as_posix()}")

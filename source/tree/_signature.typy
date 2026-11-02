@@ -1,0 +1,17 @@
+"""The signature of a typed function."""
+
+from ._base import TypyNode
+
+
+class Signature(TypyNode):
+    """``parameters`` (a list of ``Parameter``) and the ``returns`` ``TypeRef``.
+
+    Typy requires both (spec §15): every parameter is typed and every function
+    has an explicit return type, ``void`` and ``None`` included.
+    """
+
+    tuple _fields = ("parameters", "returns")
+
+    void __init__(Signature self, dyn parameters = None, dyn returns = None):
+        self.parameters = list(parameters) if parameters else []
+        self.returns = returns

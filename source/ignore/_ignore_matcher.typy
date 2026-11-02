@@ -1,0 +1,24 @@
+"""Git-style pattern matching for ``.typyignore``."""
+
+from ._spec import build_spec
+
+
+class IgnoreMatcher:
+    """Answers "is this project path excluded?" using ``.gitignore`` rules:
+    globs, ``**``, directory patterns (``build/``), anchoring (``/x``) and
+    negation (``!keep.me``).
+    """
+
+    void __init__(IgnoreMatcher self, list patterns):
+        self._spec = build_spec(patterns)
+
+    bool matches(IgnoreMatcher self, str rel_posix_path, bool is_dir):
+        """True if ``rel_posix_path`` (relative to the project root, with
+        ``/`` separators) is ignored. Directories are matched with a trailing
+        slash so that directory-only patterns apply to them.
+        """
+
+        # The trailing slash lets the matcher distinguish directories from files.
+        str candidate = rel_posix_path + "/" if is_dir else rel_posix_path
+
+        return self._spec.match_file(candidate)

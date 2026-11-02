@@ -1,0 +1,34 @@
+"""Moving a finished build into ``output/``."""
+
+from .. import tools
+from ._clear_destination import clear_destination
+
+
+void publish_directory(
+    tools.path.Path staging,
+    tools.path.Path output_dir,
+    bool override,
+):
+    """Replace ``output_dir`` with the contents of ``staging``."""
+
+    clear_destination(output_dir, override)
+
+    # Copy the completed staging directory into its final location.
+    tools.fs.copytree(staging, output_dir)
+
+
+tools.path.Path publish_archive(
+    tools.path.Path archive,
+    tools.path.Path output_dir,
+    bool override,
+    ):
+    """Replace ``output_dir`` with a folder holding just the archive file
+    (``--standalone`` ships one runnable file, not the loose sources)."""
+
+    clear_destination(output_dir, override)
+    output_dir.mkdir(parents=True)
+
+    # copy2 preserves file metadata, including the executable bit.
+    tools.fs.copy2(archive, output_dir / archive.name)
+
+    return output_dir / archive.name

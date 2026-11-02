@@ -1,0 +1,29 @@
+"""Building located parse errors."""
+
+from .. import tools
+from ..errors import TypyIndentationError, TypySyntaxError
+from ._context import ParseContext
+
+
+TypySyntaxError syntax_error(ParseContext ctx, str message, tools.tokens.TokenInfo token, dyn hint = None):
+    """A ``TypySyntaxError`` pointing at ``token``."""
+
+    return TypySyntaxError(
+        message,
+        token.start[0],
+        token.start[1],
+        ctx.filename,
+        hint,
+    )
+
+
+TypyIndentationError indentation_error(ParseContext ctx, str message, tools.tokens.TokenInfo token, dyn hint = None):
+    """A ``TypyIndentationError`` pointing at ``token``."""
+
+    return TypyIndentationError(
+        message,
+        token.start[0],
+        token.start[1],
+        ctx.filename,
+        hint,
+    )

@@ -1,0 +1,13 @@
+"""Logical negation of an expression."""
+
+from .. import tools
+
+
+tools.pyast.UnaryOp negate(dyn expression):
+    """``not expression`` (the lowering of ``unless`` / ``elunless`` / ``until``)."""
+
+    # Wrap the original expression in Python's unary ``not`` operator.
+    return tools.pyast.UnaryOp(
+        op=tools.pyast.Not(),
+        operand=expression,
+    )

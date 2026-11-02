@@ -1,0 +1,86 @@
+"""Deciding what a build covers."""
+
+from .. import tools
+from ..errors import TypyProjectError
+from ._walk_project import walk_project
+
+
+class BuildPlan:
+    """What ``typy build`` will do: the files to compile, the files to copy
+    along, and where the result goes.
+
+    ``root``        the folder paths are relative to (the project folder, or the
+                    folder containing a single target file)
+    ``output_dir``  ``root/output``
+    ``name``        project or file name; names a standalone archive
+    ``entry``       the ``.typy`` file a program starts from, if there is one
+    """
+
+    void __init__(
+        BuildPlan self,
+        tools.path.Path root,
+        list typy_files,
+        list resource_files,
+        bool single_file,
+        ):
+        self.root = root
+        self.output_dir = root / "output"
+        self.typy_files = typy_files
+        self.resource_files = resource_files
+        self.single_file = single_file
+
+        # Derive the build name and entry point from the target type.
+        self.name = typy_files[0].stem if single_file else root.name
+        self.entry = typy_files[0] if single_file else self._find_entry()
+
+    dyn _find_entry(BuildPlan self):
+        # Check the supported project entry-point filenames in order.
+        for candidate in ("__main__.typy", "main.typy"):
+            if (self.root / candidate) in self.typy_files:
+                return self.root / candidate
+
+        return None
+
+
+BuildPlan make_plan(
+    tools.path.Path target,
+    bool lightweight = False,
+    ):
+    """Build a ``BuildPlan`` for ``target`` (a ``.typy`` file or a folder)."""
+
+    # Handle a single Typy source file directly.
+    if target.is_file():
+        if target.suffix != ".typy":
+            raise TypyProjectError(f"'{target.name}' is not a .typy file")
+
+        return BuildPlan(target.parent, [target], [], True)
+
+    if not target.is_dir():
+        raise TypyProjectError(
+            f"'{target}' is not a file or a directory"
+        )
+
+    # Walk the project and separate sources from resource files.
+    list found = list(walk_project(target, lightweight))
+
+    list typy_files = [
+        path
+        for path, is_typy in found
+        if is_typy
+    ]
+
+    if not typy_files:
+        raise TypyProjectError(
+            f"no .typy files found under '{target}'"
+        )
+
+    return BuildPlan(
+        target,
+        typy_files,
+        [
+            path
+            for path, is_typy in found
+            if not is_typy
+        ],
+        False,
+    )

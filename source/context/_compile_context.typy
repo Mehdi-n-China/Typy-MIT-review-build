@@ -1,0 +1,57 @@
+"""The CompileContext class."""
+
+
+class CompileContext:
+    """Everything the stages of a single compilation share.
+
+    ``enforce``        whether ``--enforce`` runtime checks are generated
+    ``taken``          every identifier already used in the source, so the
+                       names the compiler invents never collide with them
+    ``uses_any``       set when generated code needs ``from typing import Any``
+    ``needs_runtime``  set when generated code needs the runtime package
+    ``runtime_calls``  how many runtime checks were generated
+    ``trace``          human-readable notes about each stage (``--veritasium``)
+    """
+
+    void __init__(
+        CompileContext self,
+        str filename='<typy>',
+        bool enforce=False,
+        dyn names=(),
+    ):
+        self.filename = filename
+        self.enforce = enforce
+        self.taken = set(names)
+        self.uses_any = False
+        self.needs_runtime = False
+        self.runtime_calls = 0
+        self.trace = []
+
+        # Keep generated-name counters separate for each prefix.
+        self._counters = {}
+
+    str fresh_name(CompileContext self, str prefix):
+        """A new identifier ``<prefix><n>`` that appears nowhere in the file.
+
+        Used for the hidden helpers generated code needs: ``_typy_ch1`` for
+        optional-chaining temporaries, ``_typy_state_1`` for ``any`` bindings.
+        """
+
+        dyn number = self._counters.get(prefix, 0)
+
+        while True:
+            number += 1
+            str candidate = f"{prefix}{number}"
+
+            if candidate not in self.taken:
+                break
+
+        self._counters[prefix] = number
+        self.taken.add(candidate)
+
+        return candidate
+
+    void note(CompileContext self, str message):
+        """Record one line of ``--veritasium`` commentary about this compilation."""
+
+        self.trace.append(message)

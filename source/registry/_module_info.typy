@@ -1,0 +1,11 @@
+"""One row of the module table."""
+
+
+class ModuleInfo:
+    """A Typy package: its ``name``, what it does, and the ``since`` version
+    that introduced it."""
+
+    void __init__(ModuleInfo self, str name, str summary, str since):
+        self.name = name
+        self.summary = summary
+        self.since = since

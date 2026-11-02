@@ -1,0 +1,18 @@
+"""Scope resolution for a whole file."""
+
+from ._collect_names import collect_names
+from ._resolve_statement import resolve_block
+from ._scope import Scope
+from ..context import CompileContext
+from ._diagnostics import Diagnostics
+from ..tree import Program
+
+
+void resolve_program(Program program, CompileContext ctx, Diagnostics diagnostics):
+    """Build the module scope, resolve every statement and store the module
+    scope on ``program.scope``."""
+    Scope scope = Scope("module")
+    program.scope = scope
+
+    collect_names(program.body, scope)
+    resolve_block(program.body, scope, ctx, diagnostics)

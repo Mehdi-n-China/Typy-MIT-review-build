@@ -1,0 +1,28 @@
+"""
+Typy reserved terms (spec §4).
+
+User code can never *define* one of these names: no assignment target, no
+parameter, no function or class name, no loop variable, and so on. Merely
+*referencing* them is allowed, which is why Python's builtin ``any(...)``
+keeps working even though ``any`` is reserved as a Typy type.
+
+``__`` (two underscores) is compiler-owned: ``repeat N:`` lowers to
+``for __ in range(N):``. A single ``_`` is an ordinary identifier again
+(``for _ in range(3)``, ``x, _ = pair`` and friends all work), which is the
+whole reason ``__`` took over this job in 2.2.0. Longer names such as
+``_temp`` or ``__internal`` were never affected.
+"""
+
+
+frozenset RESERVED_TERMS = frozenset({
+    "__",        # compiler-owned throwaway name used by `repeat`
+    "any",       # Typy type: type is fixed by the first value
+    "dyn",       # Typy type: never enforced
+    "void",      # Typy return type: produces no value at all
+    "repeat",    # statement keyword
+    "unless",    # statement keyword
+    "elunless",  # statement keyword
+    "forever",   # statement keyword
+    "until",     # statement keyword
+    "typy",      # alias of the runtime module in generated code
+})

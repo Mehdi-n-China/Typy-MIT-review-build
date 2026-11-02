@@ -1,0 +1,52 @@
+"""Choosing the files an export contains."""
+
+from .. import tools
+from ..ignore import load_ignore_matcher
+from ._constants import ARCHIVE_SUFFIX, EXCLUDED_DIRECTORIES
+
+
+list collect_export_files(tools.path.Path root):
+    """Every file under ``root`` that belongs in an export, sorted.
+
+    Everything is included except: build output (``root/output``), caches and
+    tool folders (``.git``, ``__pycache__``, ...), compiled ``.pyc`` files,
+    other ``.typyexp`` archives, and anything ``.typyignore`` excludes. The
+    ``.typyignore`` file itself *is* exported, so the recipient builds the
+    same project.
+    """
+
+    # Load the project's ignore rules before walking its files.
+    dyn matcher = load_ignore_matcher(root)
+
+    list files = []
+
+    for directory, subdirectories, names in tools.env.walk(root):
+        tools.path.Path here = tools.path.Path(directory)
+
+        # Prune excluded directories before the walk descends into them.
+        subdirectories[:] = sorted(
+            name
+            for name in subdirectories
+            if name not in EXCLUDED_DIRECTORIES
+            and not (here == root and name == "output")
+        )
+
+        for name in sorted(names):
+            tools.path.Path path = here / name
+            tools.path.Path relative = path.relative_to(root)
+
+            # Skip compiled bytecode and existing export archives.
+            if path.suffix in (".pyc", ARCHIVE_SUFFIX):
+                continue
+
+            # Always include the ignore file itself, even if its rules match it.
+            if (
+                name != ".typyignore"
+                and matcher is not None
+                and matcher.matches(relative.as_posix(), False)
+            ):
+                continue
+
+            files.append(path)
+
+    return files

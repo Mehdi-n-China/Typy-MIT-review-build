@@ -1,0 +1,8 @@
+"""platform facade: which interpreter and operating system we are on."""
+
+import platform
+import types
+
+types.FunctionType system = platform.system
+types.FunctionType python_version = platform.python_version
+types.FunctionType python_implementation = platform.python_implementation

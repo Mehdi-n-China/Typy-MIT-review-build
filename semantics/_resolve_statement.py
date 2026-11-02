@@ -1,0 +1,58 @@
+"""Resolving one statement."""
+from typing import Any
+from .. import tools
+from ..tree import FunctionDeclaration, TypedDeclaration, child_blocks
+from ._binding_for_type import binding_for_type
+from ._check_target import check_assignment_target
+from ._collect_names import collect_names
+from ._resolve_function import resolve_function
+from ._scope import Scope
+from ._type_ref_from_annotation import type_ref_from_annotation
+from ._binding import Binding
+from ..context import CompileContext
+from ._diagnostics import Diagnostics
+_PYAST: tools.types.ModuleType = tools.pyast
+
+def resolve_block(statements: list, scope: Scope, ctx: CompileContext, diagnostics: Diagnostics) -> None:
+    """Resolve ``statements`` in source order."""
+    for statement in statements:
+        resolve_statement(statement, scope, ctx, diagnostics)
+
+def resolve_statement(statement: Any, scope: Scope, ctx: CompileContext, diagnostics: Diagnostics) -> None:
+    """Attach binding information to one statement and recurse.
+
+    Annotations written onto nodes (read later by the enforcement pass):
+      ``TypedDeclaration.binding`` / ``AnnAssign.binding``  what it declares
+      ``Assign.binding`` / ``AugAssign.binding``           what its target
+                                                           was declared as
+      ``FunctionDeclaration.scope`` / ``ClassDef.scope``    the scope it opens
+    Also reports assignments to names that were never declared.
+    """
+    if isinstance(statement, TypedDeclaration):
+        binding: Binding = binding_for_type(statement.type, ctx, statement.value)
+        statement.binding = binding
+        scope.known.add(statement.name)
+        scope.current[statement.name] = binding
+    elif isinstance(statement, _PYAST.AnnAssign) and isinstance(statement.target, _PYAST.Name):
+        binding = binding_for_type(type_ref_from_annotation(statement.annotation), ctx, statement.value)
+        statement.binding = binding
+        scope.known.add(statement.target.id)
+        scope.current[statement.target.id] = binding
+    elif isinstance(statement, _PYAST.Assign):
+        for target in statement.targets:
+            check_assignment_target(target, scope, diagnostics)
+        only: Any = statement.targets[0] if len(statement.targets) == 1 else None
+        statement.binding = scope.current.get(only.id) if isinstance(only, _PYAST.Name) else None
+    elif isinstance(statement, _PYAST.AugAssign):
+        target = statement.target
+        statement.binding = scope.current.get(target.id) if isinstance(target, _PYAST.Name) else None
+    elif isinstance(statement, FunctionDeclaration):
+        resolve_function(statement, scope, ctx, diagnostics, resolve_block)
+    elif isinstance(statement, _PYAST.ClassDef):
+        inner: Scope = Scope('class', scope)
+        statement.scope = inner
+        collect_names(statement.body, inner)
+        resolve_block(statement.body, inner, ctx, diagnostics)
+    else:
+        for block in child_blocks(statement):
+            resolve_block(block, scope, ctx, diagnostics)

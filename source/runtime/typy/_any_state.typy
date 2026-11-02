@@ -1,0 +1,17 @@
+"""The memory of an ``any`` binding."""
+
+
+object MISSING = object()
+
+
+class AnyState:
+    """Holds the type an ``any`` binding established.
+
+    One instance is created per ``any`` declaration (not per name), so two
+    declarations never share state even when they reuse a name.
+    """
+
+    tuple __slots__ = ("established",)
+
+    void __init__(AnyState self):
+        self.established = MISSING

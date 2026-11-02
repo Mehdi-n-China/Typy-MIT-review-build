@@ -1,0 +1,7 @@
+"""zipfile facade: the .typyexp project archive format is a zip file."""
+
+import zipfile
+
+type ZipFile = zipfile.ZipFile
+type BadZipFile = zipfile.BadZipFile
+int ZIP_DEFLATED = zipfile.ZIP_DEFLATED

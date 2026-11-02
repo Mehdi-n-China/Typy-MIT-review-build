@@ -1,0 +1,17 @@
+"""Build progress messages."""
+
+
+class Reporter:
+    """Prints progress. ``info`` always prints; ``step`` only with
+    ``--veritasium`` (the verbose flag), prefixed so it stands out."""
+
+    void __init__(Reporter self, bool verbose = False):
+        self.verbose = verbose
+
+    void info(Reporter self, str message):
+        print(message)
+
+    void step(Reporter self, str message):
+        # Only display step-by-step messages in verbose mode.
+        if self.verbose:
+            print(f"[veritasium] {message}")

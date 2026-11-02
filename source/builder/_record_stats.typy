@@ -1,0 +1,33 @@
+"""Usage counters for ``typy stats``."""
+
+from .. import tools
+from ..logger import logger
+from ._plan import BuildPlan
+
+
+void record_build(BuildPlan plan, tools.args.Namespace args, int file_count):
+    """Count a finished build and the options it used."""
+
+    # Record the overall build and compilation counts.
+    logger.increment_stat("builds")
+    logger.increment_stat("files_compiled", file_count)
+
+    # Distinguish single-file builds from full project builds.
+    logger.increment_stat(
+        "single_file_builds" if plan.single_file else "project_builds"
+    )
+
+    # Count each enabled build option.
+    for flag in (
+        "enforce",
+        "gui",
+        "bytecode",
+        "standalone",
+        "lightweight",
+        "notify",
+    ):
+        if getattr(args, flag, False):
+            logger.increment_stat(f"{flag}_builds")
+
+    # Log the completed build and its source location.
+    logger.log(f"built {file_count} file(s) from {plan.root}")

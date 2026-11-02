@@ -1,0 +1,30 @@
+
+"""The closing hint of a build."""
+
+from .. import tools
+from ._plan import BuildPlan
+from ._reporter import Reporter
+from ._stage_compiled import StagedCode
+
+
+void say_how_to_run(
+    tools.args.Namespace args,
+    BuildPlan plan,
+    StagedCode staged,
+    tools.path.Path final,
+    Reporter report,
+    ):
+    """Tell the user the command that runs what was just built."""
+
+    if args.standalone:
+        report.info(f"run it with: python {final}")
+
+    elif staged.entry is not None and not args.bytecode:
+        # Show the project output directory for package entry points.
+        tools.path.Path shown = (
+            plan.output_dir
+            if staged.entry.name == "__main__.py"
+            else plan.output_dir / staged.entry.name
+        )
+
+        report.info(f"run it with: python {shown}")

@@ -1,0 +1,67 @@
+"""Enforcing declared return types."""
+
+from .. import tools
+from ._calls import runtime_call, runtime_type_expression
+from ._contains_yield import walk_function_body
+from ..context import CompileContext
+from ..tree import FunctionDeclaration, TypeRef
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list enforce_returns(
+    FunctionDeclaration function,
+    list body,
+    CompileContext ctx,
+):
+    """Check every value ``function`` returns against its declared type.
+
+    Each ``return value`` becomes ``return typy.check(value, T, 'f() return')``
+    and, when the function can run off its end (which returns ``None``), a
+    final checked ``return`` is appended, so a missing return is caught too.
+    ``any`` / ``dyn`` / ``void`` return types and generators are left alone.
+    """
+
+    TypeRef returns = function.signature.returns
+
+    # Pseudo-types and generators don't use ordinary return enforcement.
+    if returns.is_pseudo or any(
+        isinstance(n, (_PYAST.Yield, _PYAST.YieldFrom))
+        for n in walk_function_body(body)
+    ):
+        return body
+
+    _PYAST.Constant label = _PYAST.Constant(
+        value=f"{function.name}() return"
+    )
+
+    # Keep the runtime check construction consistent for every return.
+    _PYAST.Call check(dyn value):
+        return runtime_call(
+            ctx,
+            "check",
+            [value, runtime_type_expression(returns), label],
+        )
+
+    for node in walk_function_body(body):
+        if isinstance(node, _PYAST.Return):
+            if node.value is None and returns.is_none:
+                continue  # a bare return already returns None
+
+            node.value = check(
+                node.value
+                if node.value is not None
+                else _PYAST.Constant(value=None)
+            )
+
+    # A trailing return or raise means execution cannot fall off the end.
+    if returns.is_none or (
+        body and isinstance(body[-1], (_PYAST.Return, _PYAST.Raise))
+    ):
+        return body  # nothing can fall off the end
+
+    # Falling through implicitly returns None, so check that value too.
+    return body + [
+        _PYAST.Return(value=check(_PYAST.Constant(value=None)))
+    ]

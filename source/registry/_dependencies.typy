@@ -1,0 +1,20 @@
+"""Third-party packages Typy relies on."""
+
+from .. import tools
+
+
+tuple _DEPENDENCIES = ("pathspec",)
+
+
+list installed_dependencies():
+    """``[(name, version_or_None)]`` for each dependency; ``None`` means it is
+    not installed."""
+    list found = []
+
+    for name in _DEPENDENCIES:
+        try:
+            found.append((name, tools.meta.version(name)))
+        except tools.meta.PackageNotFoundError:
+            found.append((name, None))
+
+    return found

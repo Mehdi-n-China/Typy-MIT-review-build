@@ -1,0 +1,83 @@
+"""Building Python's ``arguments`` object from Typy parameters."""
+
+from .. import tools
+from ..context import CompileContext
+from ..tree import Parameter, ParameterKind
+from ._annotation import annotation_for
+from ._walk import lower_node
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+tools.pyast.arg _argument(Parameter parameter, CompileContext ctx):
+    dyn node = _PYAST.arg(
+        arg=parameter.name,
+        annotation=annotation_for(parameter.type, ctx),
+        type_comment=None
+    )
+
+    return _PYAST.copy_location(node, parameter)
+
+
+tools.pyast.arguments build_arguments(list parameters, CompileContext ctx):
+    """Convert a Typy parameter list (markers included) into ``ast.arguments``.
+
+    ``/`` moves everything collected so far into the positional-only group,
+    a bare ``*`` or ``*type name`` starts the keyword-only group, and each
+    default is lowered like any other expression.
+    """
+
+    dyn positional_only = None
+    dyn positional = None
+    dyn keyword_only = None
+    positional_only, positional, keyword_only = [], [], []
+
+    dyn defaults = None
+    dyn keyword_defaults = None
+    defaults, keyword_defaults = [], []
+
+    dyn vararg = None
+    dyn kwarg = None
+    vararg = kwarg = None
+
+    bool after_star = False
+
+    # Parameter markers determine which argument group receives each parameter.
+    for parameter in parameters:
+        dyn kind = parameter.kind
+
+        if kind == ParameterKind.SLASH:
+            positional_only, positional = positional, []
+
+        elif kind == ParameterKind.STAR:
+            after_star = True
+
+        elif kind == ParameterKind.VARARG:
+            vararg, after_star = _argument(parameter, ctx), True
+
+        elif kind == ParameterKind.KWARG:
+            kwarg = _argument(parameter, ctx)
+
+        else:
+            dyn default = lower_node(parameter.default, ctx) if parameter.default is not None else None
+
+            if after_star:
+                keyword_only.append(_argument(parameter, ctx))
+                keyword_defaults.append(default)
+
+            else:
+                positional.append(_argument(parameter, ctx))
+
+                if default is not None:
+                    defaults.append(default)
+
+    return _PYAST.arguments(
+        posonlyargs=positional_only,
+        args=positional,
+        vararg=vararg,
+        kwonlyargs=keyword_only,
+        kw_defaults=keyword_defaults,
+        kwarg=kwarg,
+        defaults=defaults,
+    )

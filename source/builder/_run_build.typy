@@ -1,0 +1,24 @@
+"""The build sequence."""
+
+from .. import tools
+from ..errors import TypyBaseError
+from ..logger import logger
+from ._build_target import build_target
+
+
+void run_build(tools.args.Namespace args):
+    """Run ``typy build`` for the parsed command line ``args``.
+
+    Order matters for safety: the override check and every compile happen
+    before anything is written; output is then staged in a temporary folder
+    and copied into ``output/`` last. Raises a ``TypyBaseError`` on failure
+    (and counts it for ``typy stats``).
+    """
+
+    try:
+        build_target(args)
+
+    # Count failed builds, then let the original exception propagate.
+    except TypyBaseError:
+        logger.increment_stat("failed_builds")
+        raise

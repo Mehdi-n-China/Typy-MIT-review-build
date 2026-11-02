@@ -1,0 +1,6 @@
+"""traceback facade: crash reports for unexpected internal errors."""
+
+import traceback
+import types
+
+types.FunctionType format_exc = traceback.format_exc

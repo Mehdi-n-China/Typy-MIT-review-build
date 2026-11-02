@@ -1,0 +1,89 @@
+"""Enforcing parameter types at function entry."""
+
+from .. import tools
+from ..semantics import BindingKind
+from ..tree import FunctionDeclaration, ParameterKind
+from ._any_state import any_state_statement
+from ._calls import runtime_call, runtime_type_expression
+from ._checked_value import checked_value
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list parameter_prologue(FunctionDeclaration function, CompileContext ctx):
+    """Statements that run first in ``function`` and check each argument.
+
+    A normal parameter is re-bound to its checked value; ``*type name`` and
+    ``**type name`` check every element they collected. ``any`` parameters
+    establish their type from the value actually passed in.
+    """
+
+    list statements = []
+
+    for parameter in function.signature.parameters:
+        dyn binding = getattr(parameter, "binding", None)
+
+        if binding is None or binding.kind not in (
+            BindingKind.CONCRETE,
+            BindingKind.ANY,
+        ):
+            continue
+
+        _PYAST.Name name = _PYAST.Name(
+            id=parameter.name,
+            ctx=_PYAST.Load(),
+        )
+        _PYAST.Constant label = _PYAST.Constant(value=parameter.name)
+
+        if parameter.kind == ParameterKind.NORMAL:
+            if binding.kind == BindingKind.ANY:
+                statements.append(any_state_statement(binding, ctx))
+
+            statements.append(
+                _PYAST.Assign(
+                    targets=[
+                        _PYAST.Name(
+                            id=parameter.name,
+                            ctx=_PYAST.Store(),
+                        )
+                    ],
+                    value=checked_value(
+                        name,
+                        binding,
+                        parameter.name,
+                        ctx,
+                    ),
+                )
+            )
+
+        elif binding.kind == BindingKind.CONCRETE:
+            dyn values = name
+
+            if parameter.kind == ParameterKind.KWARG:
+                values = _PYAST.Call(
+                    func=_PYAST.Attribute(
+                        value=name,
+                        attr="values",
+                        ctx=_PYAST.Load(),
+                    ),
+                    args=[],
+                    keywords=[],
+                )
+
+            statements.append(
+                _PYAST.Expr(
+                    value=runtime_call(
+                        ctx,
+                        "check_each",
+                        [
+                            values,
+                            runtime_type_expression(parameter.type),
+                            label,
+                        ],
+                    )
+                )
+            )
+
+    return statements

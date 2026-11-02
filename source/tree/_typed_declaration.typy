@@ -1,0 +1,23 @@
+"""``TYPE name = value``."""
+
+from ._base import TypyStatement
+
+
+class TypedDeclaration(TypyStatement):
+    """A typed variable declaration such as ``int x = 10`` (spec §5).
+
+    ``type`` is a ``TypeRef``, ``name`` the declared identifier and ``value``
+    the initial value expression. Lowers to an annotated assignment.
+    """
+
+    tuple _fields = ("type", "name", "value")
+
+    void __init__(
+        TypedDeclaration self,
+        dyn type = None,
+        dyn name = None,
+        dyn value = None,
+    ):
+        self.type = type
+        self.name = name
+        self.value = value

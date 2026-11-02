@@ -1,0 +1,11 @@
+"""shutil facade: copying and removing build output."""
+
+import shutil
+import types
+
+types.FunctionType copyfile = shutil.copyfile
+types.FunctionType copy2 = shutil.copy2
+types.FunctionType copytree = shutil.copytree
+types.FunctionType rmtree = shutil.rmtree
+types.FunctionType move = shutil.move
+types.FunctionType ignore_patterns = shutil.ignore_patterns

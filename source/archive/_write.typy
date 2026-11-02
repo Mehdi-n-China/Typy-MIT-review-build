@@ -1,0 +1,42 @@
+
+"""Writing an archive."""
+
+from .. import tools
+from ._constants import MANIFEST_NAME, PAYLOAD_DIR
+from ._manifest import build_manifest
+
+
+dict write_archive(
+    tools.path.Path root,
+    list files,
+    tools.path.Path destination,
+):
+    """Write ``files`` (paths under ``root``) to the zip at ``destination``
+    and return the manifest that was stored.
+
+    The manifest goes first so a reader can validate before touching the
+    payload; payload paths always use ``/`` regardless of the host system.
+    """
+
+    # Build the manifest before writing the archive.
+    dict manifest = build_manifest(root, files)
+
+    with tools.zips.ZipFile(
+        destination,
+        "w",
+        tools.zips.ZIP_DEFLATED,
+    ) as archive:
+
+        # Write the manifest first, followed by the project files.
+        archive.writestr(
+            MANIFEST_NAME,
+            tools.json.dumps(manifest, indent=2),
+        )
+
+        for path in files:
+            archive.write(
+                path,
+                f"{PAYLOAD_DIR}/{path.relative_to(root).as_posix()}",
+            )
+
+    return manifest

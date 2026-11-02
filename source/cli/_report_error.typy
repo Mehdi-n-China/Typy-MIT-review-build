@@ -1,0 +1,31 @@
+"""Printing errors for humans."""
+
+from .. import tools
+from ..errors import TypyCompilationError
+
+
+None report_error(dyn error):
+    """Print ``error`` to stderr: one ``error:`` line per diagnostic, plus a
+    count when a build produced several."""
+
+    dyn stream = tools.sys.stderr
+
+    if isinstance(error, TypyCompilationError):
+        # Summarize the number of diagnostics and affected files.
+        set files = {item.filename for item in error.errors}
+        int count = len(error.errors)
+
+        print(
+            f"build failed: {count} error{'s' if count != 1 else ''} "
+            f"in {len(files)} file(s)",
+            file=stream,
+        )
+
+        # Print each compilation diagnostic separately.
+        for item in error.errors:
+            print(f"error: {item}", file=stream)
+
+        return
+
+    # Handle non-compilation errors with a single error line.
+    print(f"error: {error}", file=stream)

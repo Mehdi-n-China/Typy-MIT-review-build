@@ -1,0 +1,35 @@
+"""Where Typy keeps its logs and counters."""
+
+from .. import tools
+
+
+tools.path.Path stats_directory():
+    """Directory holding ``stats.json`` and the ``logs/`` tree.
+
+    Defaults to ``stats/`` next to the package; set ``TYPY_STATS_DIR`` to put
+    it somewhere else (the test-suite does, to keep the repository clean).
+    """
+
+    # Allow tests and users to keep runtime data outside the package directory.
+    dyn override = tools.env.getenv("TYPY_STATS_DIR")
+
+    if override:
+        return tools.path.Path(override)
+
+    return tools.path.Path(__file__).resolve().parent.parent / "stats"
+
+
+tools.path.Path new_log_path(tools.path.Path stats_dir):
+    """A fresh ``logs/YYYY/MM/DD/HH-MM-SS-ffffff.log`` path under ``stats_dir``."""
+
+    # Build a date-based hierarchy so log files are easy to browse chronologically.
+    dyn now = tools.date.now()
+
+    return (
+        stats_dir
+        / "logs"
+        / f"{now.year}"
+        / f"{now.month:02d}"
+        / f"{now.day:02d}"
+        / f"{now.strftime('%H-%M-%S-%f')}.log"
+    )

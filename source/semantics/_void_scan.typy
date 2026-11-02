@@ -1,0 +1,32 @@
+"""Finding void calls used as values inside one expression."""
+
+from .. import tools
+from ..errors import TypyVoidError
+from ._expression_roots import is_statement_call
+from ._void_scope_lookup import refers_to_void
+from ._diagnostics import Diagnostics
+from ._scope import Scope
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+void scan_for_void_calls(dyn node, dyn parent, dyn grandparent, Scope scope, Diagnostics diagnostics):
+    """Report every call to a ``void`` function under ``node`` whose result is
+    used (anything but a bare call statement)."""
+    if (
+        isinstance(node, _PYAST.Call)
+        and isinstance(node.func, _PYAST.Name)
+        and refers_to_void(scope, node.func.id)
+        and not is_statement_call(parent, grandparent)
+    ):
+        diagnostics.report(
+            TypyVoidError,
+            f"'{node.func.id}' is declared void; its result cannot be used as a value",
+            node,
+            hint="call it as a statement on its own line",
+        )
+
+    # Inspect nested expressions too, preserving their parent relationships.
+    for child in _PYAST.iter_child_nodes(node):
+        scan_for_void_calls(child, node, parent, scope, diagnostics)

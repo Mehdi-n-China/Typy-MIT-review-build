@@ -1,0 +1,23 @@
+"""``TypedDeclaration`` -> annotated assignment."""
+
+from .. import tools
+from ._annotation import annotation_for
+from ._walk import lower_node
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+list lower_typed_declaration(dyn node, CompileContext ctx):
+    """``int x = 10`` becomes ``x: int = 10`` (spec §27)."""
+
+    # Build the annotation and initializer separately before creating the assignment.
+    _PYAST.AnnAssign lowered = _PYAST.AnnAssign(
+        target=_PYAST.Name(id=node.name, ctx=_PYAST.Store()),
+        annotation=annotation_for(node.type, ctx),
+        value=lower_node(node.value, ctx),
+        simple=1,
+    )
+
+    return [_PYAST.copy_location(lowered, node)]

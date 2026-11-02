@@ -1,0 +1,21 @@
+"""The file handler behind the crash/event log."""
+
+from .. import tools
+
+
+tools.logs.FileHandler create_file_handler(tools.path.Path log_file):
+    """Open ``log_file`` (creating its folders) and wrap it in a handler."""
+
+    # Ensure the log directory exists before opening the file handler.
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    dyn handler = tools.logs.FileHandler(log_file, encoding="utf-8")
+
+    handler.setFormatter(
+        tools.logs.Formatter(
+            "[%(asctime)s] %(levelname)s: %(message)s",
+            datefmt="%H:%M:%S"
+        )
+    )
+
+    return handler

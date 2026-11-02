@@ -1,0 +1,27 @@
+"""
+Runtime enforcement (``--enforce``, spec §12).
+
+Without ``--enforce`` Typy only emits annotations. With it, this stage
+rewrites the analysed tree so the generated program checks its own types
+as it runs, always by *exact* type (a ``bool`` is not an ``int``):
+
+    declarations    ``int x = v``       -> ``x: int = typy.check(v, int, 'x')``
+    assignments     ``x = v``           -> checked against x's declared type
+    augmented       ``x += v``          -> x re-checked afterwards
+    parameters      checked on function entry (``*`` / ``**`` per element)
+    returns         every ``return`` and a missing return are checked
+    any             the first value fixes the type, later ones must match
+    dyn             never checked
+
+Return and augmented-assignment enforcement arrived in 2.3.0.
+
+Since: 1.0.0
+"""
+from ._block import enforce_block
+from ..context import CompileContext
+from ..tree import Program
+
+def inject_enforcement(program: Program, ctx: CompileContext) -> Program:
+    """Rewrite ``program`` in place so it enforces its declared types."""
+    program.body = enforce_block(program.body, ctx)
+    return program

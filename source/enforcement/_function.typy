@@ -1,0 +1,33 @@
+"""Enforcing a typed function: its parameters, body and return values."""
+
+from .. import tools
+from ._docstring import split_docstring
+from ._parameters import parameter_prologue
+from ._returns import enforce_returns
+from ..context import CompileContext
+from ..tree import FunctionDeclaration
+
+
+list enforce_function(
+    FunctionDeclaration function,
+    CompileContext ctx,
+    tools.types.FunctionType enforce_block,
+):
+    """Enforce ``function`` in place and return ``[function]``.
+
+    The body is enforced first (``enforce_block`` is passed in to avoid an
+    import cycle), then returns are checked, then the parameter checks are
+    inserted after the docstring so they run before anything else.
+    """
+
+    list body = enforce_block(function.body, ctx)
+    body = enforce_returns(function, body, ctx)
+
+    dyn docstring = None
+    dyn rest = None
+
+    docstring, rest = split_docstring(body)
+
+    function.body = docstring + parameter_prologue(function, ctx) + rest
+
+    return [function]

@@ -1,0 +1,16 @@
+"""Comparing dotted version strings."""
+
+from .. import tools
+
+tools.regex.Pattern _VERSION = tools.regex.compile(r"\d+(?:\.\d+)*")
+
+tuple parse_version(dyn text):
+    """``"2.3.9"`` -> ``(2, 3, 9)``; anything that is not a dotted number
+    parses as ``(0,)``, i.e. older than every real release."""
+
+    # Reject values that are not valid dotted version strings.
+    if not isinstance(text, str) or not _VERSION.fullmatch(text):
+        return (0,)
+
+    # Convert each numeric component into an integer.
+    return tuple(int(part) for part in text.split("."))

@@ -1,0 +1,5 @@
+"""The error raised when a runtime check fails."""
+
+
+class TypyTypeError(TypeError):
+    """A value did not have the type Typy's enforcement required."""

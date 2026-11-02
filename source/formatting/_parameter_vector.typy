@@ -1,0 +1,38 @@
+"""An ordered group of parameters."""
+
+
+class ParameterVector:
+    """An ordered list of ``Parameter`` nodes that knows how to print itself.
+
+    Vectors and parameters combine with ``+``::
+
+        ParameterVector([a]) + b        # a vector holding a, b
+        ParameterVector([a]) + vector   # concatenation
+    """
+
+    void __init__(ParameterVector self, dyn parameters = None):
+        self.parameters = list(parameters or [])
+
+    dyn __add__(ParameterVector self, dyn other):
+        if isinstance(other, ParameterVector):
+            # Combining two vectors preserves their original order.
+            return ParameterVector(self.parameters + other.parameters)
+
+        if hasattr(other, "formatted"):  # a single Parameter
+            return ParameterVector(self.parameters + [other])
+
+        return NotImplemented
+
+    dyn __iter__(ParameterVector self):
+        return iter(self.parameters)
+
+    int __len__(ParameterVector self):
+        return len(self.parameters)
+
+    @property
+    str formatted(ParameterVector self):
+        """The Python-side parameter list: ``a: int, /, b: str = 'x'``."""
+
+        return ", ".join(
+            parameter.formatted for parameter in self.parameters
+        )

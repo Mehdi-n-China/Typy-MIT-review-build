@@ -1,0 +1,14 @@
+"""One ``name(initial)`` pair of an initialized loop."""
+
+from ._base import TypyNode
+
+
+class LoopBinding(TypyNode):
+    """The ``i(0)`` in ``i(0) while i < 10:`` — a loop variable and the
+    expression it starts from. Loop variables are implicitly ``dyn``."""
+
+    tuple _fields = ("name", "value")
+
+    void __init__(LoopBinding self, dyn name = None, dyn value = None):
+        self.name = name
+        self.value = value

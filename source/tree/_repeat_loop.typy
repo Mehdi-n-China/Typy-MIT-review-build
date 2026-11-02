@@ -1,0 +1,20 @@
+"""``repeat N:``."""
+
+from ._base import TypyStatement
+
+
+class RepeatLoop(TypyStatement):
+    """``repeat count:`` runs its body ``count`` times with no user-visible
+    iteration variable (spec §21); it lowers to ``for __ in range(count):``."""
+
+    tuple _fields = ("count", "body", "orelse")
+
+    void __init__(
+        RepeatLoop self,
+        dyn count = None,
+        dyn body = None,
+        dyn orelse = None,
+    ):
+        self.count = count
+        self.body = body if body is not None else []
+        self.orelse = orelse if orelse is not None else []

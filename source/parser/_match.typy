@@ -1,0 +1,77 @@
+"""``match`` / ``case`` (a soft keyword, so it is probed before it is trusted)."""
+
+from .. import tools
+from ..lexer import find_header_colon, LogicalLine
+from ._guards import segment_text
+from ._header_stub import parse_header
+from ._body import parse_body
+from ._errors import syntax_error
+from ._keywords import starts_with
+from ._simple import parse_simple_line
+from ._context import ParseContext
+
+
+str _CASE_STUB = "\n case _: pass"
+
+
+bool _is_match_statement(ParseContext ctx, LogicalLine line):
+    """True if ``line`` is really a ``match subject:`` header.
+
+    ``match`` is only a keyword here; ``match = re.match(...)`` is an
+    assignment. A cheap shape test comes first, then a quiet trial parse.
+    """
+
+    if not line.children or find_header_colon(line.tokens, 1) != len(line.tokens) - 1:
+        return False
+
+    # Trial-parse the header to distinguish the soft keyword from a name.
+    try:
+        dyn tree = tools.pyast.parse(segment_text(ctx, line.tokens) + _CASE_STUB)
+    except SyntaxError:
+        return False
+
+    return isinstance(tree.body[0], tools.pyast.Match)
+
+
+tuple parse_match(ParseContext ctx, list lines, int index, list decorators):
+    """Parse a ``match`` statement; anything that is not one is handed to the
+    simple-statement parser, which will parse (or reject) it as Python."""
+
+    LogicalLine line = lines[index]
+
+    if not _is_match_statement(ctx, line):
+        return parse_simple_line(ctx, lines, index, decorators)
+
+    dyn node = parse_header(ctx, line.tokens, suffix=_CASE_STUB)
+    list cases = []
+
+    for case_line in line.children:
+        if not starts_with(case_line, "case"):
+            raise syntax_error(
+                ctx,
+                "only 'case' clauses may appear directly inside 'match'",
+                case_line.first,
+            )
+
+        dyn colon = find_header_colon(case_line.tokens, 1)
+        if colon is None:
+            raise syntax_error(
+                ctx,
+                "expected ':' at the end of the 'case' header",
+                case_line.last,
+            )
+
+        dyn stub = parse_header(
+            ctx,
+            case_line.tokens[: colon + 1],
+            prefix="match _:\n ",
+            col_shift=-1,
+        )
+
+        dyn case = stub.cases[0]
+        case.body = parse_body(ctx, case_line, colon, "'case'")
+        cases.append(case)
+
+    node.cases = cases
+
+    return [node], index + 1

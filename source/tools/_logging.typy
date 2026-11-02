@@ -1,0 +1,11 @@
+"""logging facade: the crash/event log is written through these classes."""
+
+import logging
+import types
+
+types.FunctionType getLogger = logging.getLogger
+type FileHandler = logging.FileHandler
+type Formatter = logging.Formatter
+
+int INFO = logging.INFO
+int ERROR = logging.ERROR

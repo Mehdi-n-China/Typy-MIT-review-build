@@ -1,0 +1,18 @@
+"""A logical line of simple statements."""
+
+from ._errors import indentation_error
+from ._segments import parse_segments
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+
+tuple parse_simple_line(ParseContext ctx, list lines, int index, list decorators):
+    """Parse ``lines[index]`` as simple statement(s); a simple statement can
+    never own an indented block."""
+    LogicalLine line = lines[index]
+
+    # Simple statements cannot have an indented child block.
+    if line.children:
+        raise indentation_error(ctx, "unexpected indent", line.children[0].first)
+
+    return parse_segments(ctx, line.tokens), index + 1

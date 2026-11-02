@@ -1,0 +1,7 @@
+"""argparse facade: the command line parser classes the CLI is built on."""
+
+import argparse
+
+type ArgumentParser = argparse.ArgumentParser
+type Namespace = argparse.Namespace
+str SUPPRESS = argparse.SUPPRESS

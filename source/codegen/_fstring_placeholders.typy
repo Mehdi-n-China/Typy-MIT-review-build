@@ -1,0 +1,62 @@
+"""Taking f-strings out of a tree before printing, and putting them back."""
+
+from .. import tools
+
+
+list extract_fstrings(dyn tree):
+    """Replace every outermost f-string in ``tree`` with a placeholder name
+    and return ``[(placeholder, f-string node)]``.
+
+    ``ast.unparse`` then prints everything else, and ``restore_fstrings``
+    swaps each placeholder for an f-string printed by ``render_fstring``.
+    """
+
+    list pairs = []
+    list stack = [tree]
+
+    while stack:
+        dyn node = stack.pop()
+
+        for name, value in tools.pyast.iter_fields(node):
+            dyn items = value if isinstance(value, list) else [value]
+
+            for index, item in enumerate(items):
+                if isinstance(item, tools.pyast.JoinedStr):
+                    # Keep the original node for custom rendering later.
+                    tools.pyast.Name placeholder = tools.pyast.Name(
+                        id=f"__typy_fstring_{len(pairs)}__",
+                        ctx=tools.pyast.Load(),
+                    )
+                    pairs.append((placeholder.id, item))
+
+                    if isinstance(value, list):
+                        value[index] = placeholder
+                    else:
+                        setattr(node, name, placeholder)
+
+                elif isinstance(item, tools.pyast.AST):
+                    stack.append(item)
+
+    return pairs
+
+
+str restore_fstrings(str text, list pairs, tuple enclosing):
+    """Put printed f-strings back in place of their placeholders. An f-string
+    no quoting can express is printed as its ``''.join`` equivalent."""
+
+    from ._fstring_expression import expression_source
+    from ._fstring_fallback import fallback_expression
+    from ._fstring_render import render_fstring
+
+    for placeholder, node in pairs:
+        dyn rendered = render_fstring(node, enclosing)
+
+        if rendered is None:
+            rendered = expression_source(
+                fallback_expression(node),
+                enclosing,
+            )
+
+        text = text.replace(placeholder, rendered, 1)
+
+    return text

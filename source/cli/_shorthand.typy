@@ -1,0 +1,25 @@
+"""``typy <target>`` as a shorthand for ``typy build <target>``."""
+
+
+frozenset COMMANDS = frozenset({
+    "build",
+    "export",
+    "import",
+    "stats",
+    "version",
+})
+
+
+list inject_default_command(list argv):
+    """Insert ``build`` when the first argument is a target, not a command.
+
+    The spec shows ``typy program.typy`` and ``typy project/``; anything that
+    is not a known command and not an option is taken as a build target, so
+    ``typy build ...``, ``typy --help`` and friends are unaffected.
+    """
+
+    # Treat an unrecognized, non-option first argument as a build target.
+    if argv and argv[0] not in COMMANDS and not argv[0].startswith("-"):
+        return ["build"] + list(argv)
+
+    return list(argv)

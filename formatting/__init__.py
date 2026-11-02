@@ -1,0 +1,12 @@
+"""
+Formatting: rendering signatures as text.
+
+``ParameterVector`` groups parameters (``Parameter`` nodes live in the AST,
+see ``Typy.tree``) and ``Formatter`` prints whole signatures, either as the
+Python ``def`` header the compiler generates or in Typy's own syntax. The
+verbose build log (``--veritasium``) uses it to show what was declared.
+
+Since: 2.1.0
+"""
+from ._formatter import Formatter
+from ._parameter_vector import ParameterVector

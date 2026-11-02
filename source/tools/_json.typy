@@ -1,0 +1,11 @@
+"""json facade: stats counters and archive manifests are stored as JSON."""
+
+import json
+import types
+
+types.FunctionType load = json.load
+types.FunctionType dump = json.dump
+types.FunctionType loads = json.loads
+types.FunctionType dumps = json.dumps
+
+type JSONDecodeError = json.JSONDecodeError

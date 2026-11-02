@@ -1,0 +1,17 @@
+"""Small predicates over logical lines."""
+
+from .. import tools
+from ..lexer import LogicalLine
+
+
+bool starts_with(LogicalLine line, str word):
+    """True if the logical line begins with the name ``word``."""
+
+    tools.tokens.TokenInfo first = line.first
+    return first.type == tools.tokens.NAME and first.string == word
+
+
+bool is_op(tools.tokens.TokenInfo token, str text):
+    """True if ``token`` is the operator ``text``."""
+
+    return token.type == tools.tokens.OP and token.string == text

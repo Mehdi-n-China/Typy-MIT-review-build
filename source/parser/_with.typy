@@ -1,0 +1,18 @@
+"""Python's ``with`` / ``async with`` statements."""
+
+from ._header_stub import parse_header
+from ._body import parse_body, require_header_colon
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+
+tuple parse_with(ParseContext ctx, list lines, int index, list decorators):
+    """Parse a ``with`` header with Python's parser and attach the body."""
+    LogicalLine line = lines[index]
+    int colon = require_header_colon(ctx, line, "with")
+
+    # Parse the header separately, then attach the indented body.
+    dyn node = parse_header(ctx, line.tokens[: colon + 1])
+    node.body = parse_body(ctx, line, colon, "'with'")
+
+    return [node], index + 1

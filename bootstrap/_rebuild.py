@@ -1,0 +1,49 @@
+"""Recompiling Typy with Typy."""
+from typing import Any
+from .. import tools
+from ..compiler import compile_source, CompileResult
+from ._plan import orphaned_modules, planned_outputs
+
+def rebuild(check: bool=False) -> int:
+    """Compile every source in ``source/`` with the compiler that is running.
+
+    Without ``check`` the results are written into the package; only files
+    whose content changes are touched. With ``check`` nothing is written and
+    the run fails if any module would change. Either way a compile error, or a
+    module that no source produces, fails the run. Returns the exit status.
+    """
+    package_dir: tools.path.Path = tools.path.Path(__file__).resolve().parent.parent
+    plan: list = planned_outputs(package_dir)
+    changed: list = []
+    failures: list = []
+    for source, target in plan:
+        result: CompileResult = compile_source(source.read_text(encoding='utf-8'), source.relative_to(package_dir).as_posix())
+        if not result.ok:
+            failures.extend(result.errors)
+            continue
+        current: Any = target.read_text(encoding='utf-8') if target.exists() else None
+        if current != result.python_code:
+            changed.append(target.relative_to(package_dir).as_posix())
+            if not check:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(result.python_code, encoding='utf-8')
+    return _report(check, len(plan), changed, failures, orphaned_modules(package_dir, plan))
+
+def _report(check: bool, total: int, changed: list, failures: list, orphans: list) -> int:
+    """Print what happened and turn it into an exit status."""
+    for error in failures:
+        print(f'error: {error}', file=tools.sys.stderr)
+    for orphan in orphans:
+        print(f'error: {orphan} is not produced by any source in source/', file=tools.sys.stderr)
+    if failures or orphans:
+        return 1
+    if check:
+        for name in changed:
+            print(f'out of date: {name}')
+        if changed:
+            print(f'{len(changed)} of {total} module(s) differ from what their sources compile to; run `python -m Typy.bootstrap` to regenerate them')
+            return 1
+        print(f'self-hosting check passed: all {total} modules are exactly what their Typy sources compile to')
+        return 0
+    print(f'rebuilt Typy from {total} Typy source(s): {len(changed)} module(s) changed')
+    return 0

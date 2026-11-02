@@ -1,0 +1,15 @@
+"""State shared by every parsing function."""
+
+from ..lexer import SourceText
+
+
+class ParseContext:
+    """What the parser needs to know about the file it is reading: the
+    ``SourceText`` (for slicing exact source text), the filename (for error
+    messages) and every identifier seen in the file (so generated names can
+    steer clear of them)."""
+
+    void __init__(ParseContext self, SourceText source, dyn names):
+        self.source = source
+        self.filename = source.filename
+        self.names = names

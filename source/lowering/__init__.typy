@@ -1,0 +1,55 @@
+"""
+Lowering: Typy AST -> plain Python AST.
+
+Every Typy-only node is replaced by the ordinary Python it stands for; all
+other nodes pass through with their children lowered. After this stage the
+tree contains nothing but Python, so ``ast.unparse`` can print it.
+
+    TypedDeclaration     int x = 1            x: int = 1
+    FunctionDeclaration  int f(int a): ...    def f(a: int) -> int: ...
+    Conditional          unless / elunless    if not ... / elif not ...
+    UntilLoop            until c:             while not c:
+    ForeverLoop          forever:             while True:
+    RepeatLoop           repeat n:            for __ in range(n):
+    InitializedLoop      i(0) while c:        i: Any = 0 / try: while c: / finally: del i
+    OptionalChain        a?.b                 None if (t := a) is None else t.b
+
+Handlers are registered in the table below; adding a new Typy construct means
+adding one node class, one parser function and one entry here.
+
+Since: 2.1.0
+"""
+
+from ..tree import (
+    Conditional,
+    ForeverLoop,
+    FunctionDeclaration,
+    InitializedLoop,
+    OptionalChain,
+    RepeatLoop,
+    TypedDeclaration,
+    UntilLoop,
+)
+from ._conditional import lower_conditional
+from ._forever import lower_forever
+from ._function_declaration import lower_function_declaration
+from ._initialized_loop import lower_initialized_loop
+from ._optional_chain import lower_optional_chain
+from ._program import lower_program
+from ._registry import HANDLERS
+from ._repeat import lower_repeat
+from ._typed_declaration import lower_typed_declaration
+from ._until import lower_until
+
+
+# Associate each Typy-specific AST node with its lowering implementation.
+HANDLERS.update({
+    TypedDeclaration: lower_typed_declaration,
+    FunctionDeclaration: lower_function_declaration,
+    Conditional: lower_conditional,
+    UntilLoop: lower_until,
+    ForeverLoop: lower_forever,
+    RepeatLoop: lower_repeat,
+    InitializedLoop: lower_initialized_loop,
+    OptionalChain: lower_optional_chain,
+})

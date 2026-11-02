@@ -1,0 +1,57 @@
+"""``if`` / ``unless`` chains (spec §22-23)."""
+
+from .. import tools
+from ..tree import Branch, Conditional, place
+from ._bridge import parse_python_expression
+from ._body import parse_body, require_header_colon
+from ._else_clause import parse_else_clause
+from ._errors import syntax_error
+from ..lexer import LogicalLine
+from ._context import ParseContext
+
+
+tuple _CONTINUATIONS = ("elif", "elunless")
+
+
+bool _continues(list lines, int index):
+    if index >= len(lines):
+        return False
+
+    tools.tokens.TokenInfo first = lines[index].first
+    return first.type == tools.tokens.NAME and first.string in _CONTINUATIONS
+
+
+tuple parse_conditional(ParseContext ctx, list lines, int index, list decorators):
+    """Parse an ``if`` or ``unless`` line plus any ``elif`` / ``elunless``
+    lines and a closing ``else`` into one ``Conditional``.
+
+    Python's ``elif`` and Typy's ``elunless`` may follow either opener in any
+    order: each branch only means "test this, negated or not".
+    """
+
+    LogicalLine opener = lines[index]
+    list branches = []
+
+    # Collect each conditional branch before parsing the optional else clause.
+    while True:
+        LogicalLine line = lines[index]
+        str keyword = line.first.string
+        int colon = require_header_colon(ctx, line, keyword)
+        list test_tokens = line.tokens[1:colon]
+
+        if not test_tokens:
+            raise syntax_error(ctx, f"'{keyword}' needs a condition", line.first)
+
+        dyn test = parse_python_expression(ctx, test_tokens)
+        list body = parse_body(ctx, line, colon, f"'{keyword}'")
+        branches.append(place(Branch(keyword, test, body), line.first, line.tokens[colon]))
+
+        index += 1
+
+        if not _continues(lines, index):
+            break
+
+    dyn orelse = None
+    orelse, index = parse_else_clause(ctx, lines, index)
+
+    return [place(Conditional(branches, orelse), opener.first, opener.last)], index

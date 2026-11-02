@@ -1,0 +1,22 @@
+"""Exact-type checking of declared names."""
+
+from ._errors import TypyTypeError
+from ._monitor_hook import report
+
+
+dyn check(dyn value, type expected_type, str name):
+    """Return ``value`` if its type is exactly ``expected_type``, else raise.
+
+    Subclasses do not count: a ``bool`` never satisfies ``int`` (spec §10).
+    """
+    type actual = type(value)
+    bool ok = actual is expected_type
+
+    report("concrete", name, expected_type, actual, ok)
+
+    if not ok:
+        raise TypyTypeError(
+            f"{name}: expected {expected_type.__name__}, got {actual.__name__}"
+        )
+
+    return value

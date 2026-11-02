@@ -1,0 +1,64 @@
+"""``OptionalChain`` -> nested conditional expressions."""
+
+from .. import tools
+from ._chain_step import apply_link
+from ._walk import lower_node
+from ..context import CompileContext
+
+
+tools.types.ModuleType _PYAST = tools.pyast
+
+
+dyn _render(dyn current, list links, int index, CompileContext ctx):
+    """Build the expression for ``links[index:]`` applied to ``current``.
+
+    A guarded link becomes ``None if (t := current) is None else <rest>``.
+    The whole remainder of the chain lives in the ``else`` branch, so a
+    ``None`` skips everything after it (further links, call arguments,
+    subscript keys) without evaluating any of it: the chain is lazy.
+    Unguarded links are plain Python and protect nothing.
+    """
+
+    if index == len(links):
+        return current
+
+    dyn link = links[index]
+
+    if not link.guarded:
+        return _render(
+            apply_link(current, link, ctx),
+            links,
+            index + 1,
+            ctx,
+        )
+
+    # Bind the current value once so the guard and subsequent link share it.
+    str temp = ctx.fresh_name("_typy_ch")
+
+    dyn rest = _render(
+        apply_link(_PYAST.Name(id=temp, ctx=_PYAST.Load()), link, ctx),
+        links,
+        index + 1,
+        ctx,
+    )
+
+    _PYAST.Compare test = _PYAST.Compare(
+        left=_PYAST.NamedExpr(
+            target=_PYAST.Name(id=temp, ctx=_PYAST.Store()),
+            value=current,
+        ),
+        ops=[_PYAST.Is()],
+        comparators=[_PYAST.Constant(value=None)],
+    )
+
+    return _PYAST.IfExp(
+        test=test,
+        body=_PYAST.Constant(value=None),
+        orelse=rest,
+    )
+
+
+dyn lower_optional_chain(dyn node, CompileContext ctx):
+    """Lower an ``OptionalChain`` (spec §24)."""
+
+    return _render(lower_node(node.base, ctx), node.links, 0, ctx)

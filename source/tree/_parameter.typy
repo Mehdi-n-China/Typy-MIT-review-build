@@ -1,0 +1,77 @@
+"""One entry of a typed parameter list."""
+
+from ._base import TypyNode
+from ._render_default import render_default
+
+
+class ParameterKind:
+    """What a parameter-list entry is.
+
+    ``NORMAL``  ``TYPE name [= default]``
+    ``SLASH``   the ``/`` marker: everything before it is positional-only
+    ``STAR``    the bare ``*`` marker: everything after it is keyword-only
+    ``VARARG``  ``*TYPE name``: collects extra positional arguments
+    ``KWARG``   ``**TYPE name``: collects extra keyword arguments
+    """
+
+    str NORMAL = "normal"
+    str SLASH = "slash"
+    str STAR = "star"
+    str VARARG = "vararg"
+    str KWARG = "kwarg"
+
+
+class Parameter(TypyNode):
+    """A parameter of a typed function signature.
+
+    ``type`` is a ``TypeRef`` (``None`` for the ``/`` and ``*`` markers, which
+    are not typed). ``default`` is an expression node or ``None``. For
+    ``VARARG`` / ``KWARG`` the type is the type of each *element*, exactly as
+    in a Python annotation ``*args: int``.
+    """
+
+    tuple _fields = ("name", "type", "default", "kind")
+
+    void __init__(
+        Parameter self,
+        dyn name = None,
+        dyn type = None,
+        dyn default = None,
+        dyn kind = ParameterKind.NORMAL,
+    ):
+        self.name = name
+        self.type = type
+        self.default = default
+        self.kind = kind
+
+    @property
+    bool is_marker(Parameter self):
+        return self.kind in (ParameterKind.SLASH, ParameterKind.STAR)
+
+    @property
+    dyn formatted(Parameter self):
+        """Python-side rendering: ``name: type`` plus `` = default`` if any."""
+        if self.is_marker:
+            return self.name
+
+        dyn prefix = {
+            ParameterKind.VARARG: "*",
+            ParameterKind.KWARG: "**",
+        }.get(self.kind, "")
+
+        str text = f"{prefix}{self.name}: {self.type.text}"
+
+        if self.default is not None:
+            text += f" = {render_default(self.default)}"
+
+        return text
+
+    dyn __add__(Parameter self, dyn other):
+        """``parameter + parameter`` builds a ``ParameterVector`` (see
+        ``Typy.formatting``), a convenient way to assemble signatures."""
+        from ..formatting import ParameterVector
+
+        return ParameterVector([self]) + other
+
+    str __repr__(Parameter self):
+        return f"Parameter({self.formatted!r})"

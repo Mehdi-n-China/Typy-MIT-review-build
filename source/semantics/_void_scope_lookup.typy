@@ -1,0 +1,27 @@
+"""Does a bare name refer to a ``void`` function?"""
+
+from ._scope import Scope
+
+
+bool refers_to_void(Scope scope, str name):
+    """Resolve ``name`` the way Python would and say whether the function it
+    finds was declared ``void``.
+
+    The nearest scope that binds the name decides, so a local variable
+    shadowing a void function correctly stops the check. A class body is only
+    visible from itself, never from the functions nested inside it.
+    """
+    dyn current = scope
+    bool first = True
+
+    while current is not None:
+        if current.kind != "class" or first:
+            if name in current.voids:
+                return True
+            if name in current.known:
+                return False
+
+        current = current.parent
+        first = False
+
+    return False

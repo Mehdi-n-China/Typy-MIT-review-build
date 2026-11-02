@@ -1,0 +1,7 @@
+"""time facade: pauses between notification beeps, build timing."""
+
+import time
+import types
+
+types.BuiltinFunctionType sleep = time.sleep
+types.BuiltinFunctionType perf_counter = time.perf_counter

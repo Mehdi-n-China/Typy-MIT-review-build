@@ -1,0 +1,29 @@
+"""The completion notification."""
+
+from .. import tools
+from ..logger import logger
+from ._beep import beep
+from ._constants import RICKROLL_PATH, ROLL_SIDES
+from ._play_file import play_file
+
+
+None notify(dyn roll = None):
+    """Tell the user the work is done.
+
+    Normally this beeps. Once in ``ROLL_SIDES`` times it tries to open the
+    Rickroll video instead; if that file is missing or cannot be opened it
+    falls back to the beep, because an Easter egg must never make a
+    successful build look broken. ``roll`` (a function returning an int) lets
+    tests choose the dice.
+    """
+
+    logger.increment_stat("notifications")
+
+    # Allow tests to inject a deterministic roll; otherwise use the RNG.
+    roll = roll or (lambda: tools.rng.int(1, ROLL_SIDES))
+
+    if roll() == 1 and play_file(RICKROLL_PATH):
+        logger.increment_stat("rickrolls")
+        return
+
+    beep()

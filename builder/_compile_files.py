@@ -1,0 +1,26 @@
+"""Compiling every file of a plan."""
+from ..compiler import compile_source, CompileResult
+from ..errors import TypyCompilationError
+from ._plan import BuildPlan
+from ._reporter import Reporter
+
+def compile_files(plan: BuildPlan, enforce: bool, report: Reporter) -> list:
+    """Compile each ``.typy`` file and return ``[(path, CompileResult)]``.
+
+    Every file is attempted even after a failure, so one run lists all the
+    problems in the project; if any file failed a single
+    ``TypyCompilationError`` carrying every diagnostic is raised, before any
+    output has been written.
+    """
+    results: list = []
+    for path in plan.typy_files:
+        relative: str = path.relative_to(plan.root).as_posix()
+        report.step(f'compiling {relative}')
+        result: CompileResult = compile_source(path.read_text(encoding='utf-8-sig'), filename=relative, enforce=enforce)
+        for note in result.trace:
+            report.step(f'  {note}')
+        results.append((path, result))
+    failures: list = [error for _, result in results for error in result.errors]
+    if failures:
+        raise TypyCompilationError(failures)
+    return results

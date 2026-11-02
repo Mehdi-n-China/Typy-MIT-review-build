@@ -1,0 +1,50 @@
+"""The Logger class."""
+
+from .. import tools
+from ._handler import create_file_handler
+from ._paths import new_log_path, stats_directory
+from ._stats_file import bump_stat
+
+
+class Logger:
+    """Event log plus usage counters.
+
+    The log file is created lazily, on the first message, and the counters
+    live in ``stats.json`` next to the ``logs/`` folder.
+    """
+
+    void __init__(Logger self):
+        self._logger = tools.logs.getLogger("typy")
+        self._logger.setLevel(tools.logs.INFO)
+        self._logger.propagate = False
+        self._attached = False
+
+    None _emit(Logger self, dyn level, str message):
+        if not self._attached:
+            # Mark the attempt first so a failed setup isn't retried repeatedly.
+            self._attached = True
+
+            try:
+                self._logger.addHandler(
+                    create_file_handler(
+                        new_log_path(
+                            stats_directory()
+                        )
+                    )
+                )
+            except OSError:
+                return
+
+        self._logger.log(level, message)
+
+    void log(Logger self, str message):
+        """Record an ordinary event."""
+        self._emit(tools.logs.INFO, message)
+
+    void crash(Logger self, str message):
+        """Record an error."""
+        self._emit(tools.logs.ERROR, message)
+
+    void increment_stat(Logger self, str name, int amount = 1):
+        """Bump the usage counter ``name`` by ``amount``."""
+        bump_stat(stats_directory() / "stats.json", name, amount)

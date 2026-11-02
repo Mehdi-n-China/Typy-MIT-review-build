@@ -1,0 +1,29 @@
+"""Turning the lowered module into source text."""
+
+from .. import tools
+from ..context import CompileContext
+from ._fstring_placeholders import extract_fstrings, restore_fstrings
+from ._header import build_header
+from ._insert_header import insert_header
+from ._unparse import unparse_with_spacing
+
+
+str generate_python(dyn module, CompileContext ctx):
+    """Add the generated imports to ``module`` and return its Python source.
+
+    F-strings are printed separately (see ``_fstring_render``) so the output
+    runs on every supported Python, whichever version ran the compiler.
+    """
+
+    tools.pyast.fix_missing_locations(module)
+
+    # Insert imports before extracting f-strings for custom rendering.
+    insert_header(module, build_header(ctx))
+
+    list pairs = extract_fstrings(module)
+
+    return restore_fstrings(
+        unparse_with_spacing(module.body),
+        pairs,
+        (),
+    )

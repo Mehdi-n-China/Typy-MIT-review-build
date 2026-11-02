@@ -1,0 +1,29 @@
+"""``i(0) while ...:`` and ``i(0) until ...:``."""
+
+from ._base import TypyStatement
+
+
+class InitializedLoop(TypyStatement):
+    """A loop that owns throwaway variables (spec §17-18).
+
+    ``bindings`` is a list of ``LoopBinding``; ``mode`` is ``"while"`` or
+    ``"until"``. The variables are created before the first test and deleted
+    when the loop ends, however it ends (normally, ``break`` or an
+    exception), so lowering wraps the loop in ``try`` / ``finally``.
+    """
+
+    tuple _fields = ("bindings", "mode", "test", "body", "orelse")
+
+    void __init__(
+        InitializedLoop self,
+        dyn bindings = None,
+        str mode = 'while',
+        dyn test = None,
+        dyn body = None,
+        dyn orelse = None,
+    ):
+        self.bindings = bindings if bindings is not None else []
+        self.mode = mode
+        self.test = test
+        self.body = body if body is not None else []
+        self.orelse = orelse if orelse is not None else []
