@@ -65,3 +65,11 @@ python -m typy build typy/example_project --enforce --override
 
 Keep generated output out of commits (`.gitignore` covers `output/`,
 `__pycache__/` and the stats data).
+
+## Note to general Hubbers
+
+This repository is provided as a review build for MIT admissions evaluation.
+
+Contributions are restricted to individuals explicitly invited and authorized by the project maintainer. No public contributions are being solicited or accepted.
+
+The repository is primarily intended for review and evaluation. However, comments, observations, questions, and constructive feedback are always welcome. If you have any feedback regarding Typy, please feel free to reach out.
